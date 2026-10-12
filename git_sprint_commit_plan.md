@@ -1,17 +1,18 @@
-# KẾ HOẠCH PHÂN CHIA VÀ QUẢN TRỊ PHIÊN BẢN GIT THEO SPRINT
+# HƯỚNG DẪN COMMIT GIT THỦ CÔNG THEO SPRINT
 ## FIELD INVENTORY & EDGE AI SUITE
 
 ---
 
 **Dự án:** `field_inventory_edge_ai` (All-in-One Field Inventory & Edge AI Suite)  
-**Vai trò:** Senior Tech Lead & Git Specialist  
-**Mục tiêu:** Ánh xạ toàn bộ cấu trúc mã nguồn thực tế vào lịch trình tiến độ 4 Sprint (12 Cards trên Trello) và cung cấp kịch bản commit Git chuẩn Conventional Commits kèm script thực thi tự động.
+**Mục tiêu:** Ánh xạ các tệp của dự án vào 4 Sprint (12 Card trên Trello) và hướng dẫn chạy từng lệnh Git thủ công theo thứ tự.
+
+> Chỉ chạy các bước tương ứng với công việc đã thực sự hoàn thành. Kiểm tra tệp tồn tại và `git status` trước mỗi commit; bỏ đường dẫn không tồn tại khỏi lệnh `git add`. Không tạo commit hoặc tag để thể hiện một kết quả chưa có. Nếu repository đã có lịch sử Git, không chạy bước khởi tạo hoặc dựng lại lịch sử bằng tài liệu này.
 
 ---
 
-## 1. Bảng Ánh Xạ File & Thư Mục Thực Tế Theo Sprint (File Mapping Table)
+## 1. Bảng ánh xạ tệp theo kế hoạch Sprint
 
-Bảng dưới đây phân loại chi tiết từng tệp tin và thư mục trong repository vào đúng phạm vi trách nhiệm của từng Card và Sprint theo quy trình phát triển thực tế:
+Bảng dưới đây là danh sách đường dẫn theo kế hoạch được cung cấp. Kiểm tra trạng thái repository trước khi dùng; tên Card không xác nhận công việc đã hoàn thành.
 
 | Sprint | Card ID | Tên Card / Nhiệm vụ Trello | Danh sách File & Thư mục Thực tế | Vai trò Kỹ thuật & Mô tả |
 | :--- | :--- | :--- | :--- | :--- |
@@ -28,13 +29,13 @@ Bảng dưới đây phân loại chi tiết từng tệp tin và thư mục tro
 | **Sprint 4** | **Card 10** | Thiết lập Backend Supabase Core & Sync | `lib/core/network/supabase_config.dart`<br>`lib/core/network/supabase_provider.dart`<br>`lib/core/network/supabase_provider.g.dart`<br>`lib/features/offline_audit/domain/repositories/sync_repository.dart`<br>`lib/features/offline_audit/data/models/cloud_audit_record_model.dart`<br>`test/features/offline_audit/cloud_audit_record_model_test.dart` | Cấu hình Supabase Client toàn cục, model ánh xạ đám mây `CloudAuditRecordModel` (UUID, UTC timestamp, Storage URL) và hợp đồng `SyncRepository`. |
 | | **Card 11** | Chức năng xuất Báo cáo PDF A4 | `lib/core/utils/pdf_report_generator.dart`<br>`test/core/utils/pdf_report_generator_test.dart` | Động cơ sinh tệp PDF A4 đa trang, tự nạp font tiếng Việt Unicode Roboto, bảng danh mục chi tiết và tích hợp native share/print sheet. |
 | | **Card 12** | Tối ưu UI Responsive cho Desktop | `lib/core/utils/responsive_layout.dart`<br>`lib/features/report_dashboard/presentation/screens/dashboard_screen.dart`<br>`test/core/utils/responsive_layout_test.dart`<br>`test/features/report_dashboard/dashboard_screen_test.dart` | Tiện ích phân tách layout breakpoint 800px; Dashboard Desktop trang bị Navigation Sidebar 250px và GridView thống kê; căn giữa và giới hạn kích thước form. |
-| **Sprint 5** | **Hồ sơ** | Báo cáo Kiểm toán & Hồ sơ Nghiệm thu | `TECHNICAL_JUSTIFICATION.md`<br>`PROJECT_AUDIT_REPORT.md`<br>`git_sprint_commit_plan.md`<br>`commit_sprints.sh` | Toàn bộ tài liệu luận chứng kiến trúc, báo cáo kiểm toán chất lượng mã nguồn (0 issues, 25/25 test passed) và kịch bản phân nhánh Git. |
+| **Sprint 5** | **Hồ sơ** | Báo cáo Kiểm toán & Hồ sơ Nghiệm thu | `TECHNICAL_JUSTIFICATION.md`<br>`PROJECT_AUDIT_REPORT.md`<br>`git_sprint_commit_plan.md` | Tài liệu luận chứng kiến trúc, báo cáo kiểm toán chất lượng mã nguồn và hướng dẫn thao tác Git thủ công. |
 
 ---
 
-## 2. Kịch Bản Lệnh Git Chi Tiết (Git Execution Script)
+## 2. Các bước thao tác Git thủ công
 
-Quy trình Git chuẩn **Git Flow kết hợp Trunk-Based Development**: Mỗi Sprint phát triển trên một nhánh riêng biệt (`sprint-1`, `sprint-2`, `sprint-3`, `sprint-4`), các Card được commit theo đúng thứ tự logic, sau đó merge về nhánh chính (`main`) bằng cờ `--no-ff` (No Fast-Forward) để bảo toàn lịch sử nhánh và đánh Tag phiên bản.
+Quy trình dùng một nhánh cho mỗi Sprint (`sprint-1` đến `sprint-4`). Sau khi hoàn thành và kiểm tra Sprint, merge về `main` bằng `--no-ff`, rồi tạo tag. Mở Git tại thư mục gốc dự án và chạy lần lượt từng nhóm lệnh bên dưới. Không chạy liên tiếp các Card nếu công việc hoặc tệp tương ứng chưa sẵn sàng.
 
 ```
 (main) o-------------------o=================o=================o=================o (v0.4-sprint4)
@@ -50,9 +51,9 @@ Quy trình Git chuẩn **Git Flow kết hợp Trunk-Based Development**: Mỗi S
 # 1. Khởi tạo Git repo với nhánh chính mang tên main
 git init -b main
 
-# 2. Cấu hình thông tin tác giả (nếu chưa cấu hình toàn cục)
-git config user.name "Senior Lead Developer"
-git config user.email "lead.dev@fieldinventory.ai"
+# 2. Cấu hình thông tin tác giả theo tên và email của bạn (nếu chưa có)
+git config user.name "Tên của bạn"
+git config user.email "ban@congty.com"
 
 # 3. Commit nền tảng ban đầu
 git add .gitignore README.md
@@ -72,7 +73,7 @@ git commit -m "feat(cv): Card 1 - Thu thap va chuan bi Dataset anh thiet bi (lab
 
 # Card 2: Huấn luyện mô hình Object Detection (YOLOv8/MobileNet)
 git add lib/core/ai_pipeline/ai_config.dart
-git commit -m "feat(cv): Card 2 - Huan luyen mo hinh Object Detection va thiet lap thong so AI"
+git commit -m "feat(cv): Card 2 - Thiet lap cau hinh AI pipeline cho Object Detection"
 
 # Card 3: Lượng tử hóa và xuất mô hình (Quantization & Export)
 git add assets/models/object_detection.tflite
@@ -93,9 +94,9 @@ git checkout -b sprint-2
 
 # Card 4: Khởi tạo project Flutter & Clean Architecture
 git add pubspec.yaml pubspec.lock analysis_options.yaml .metadata \
-        android/ ios/ macos/ web/ windows/ .vscode/ \
+        android/ ios/ macos/ web/ windows/ \
         lib/main.dart lib/core/router/ \
-        $(find lib -name ".gitkeep") \
+        lib/core/.gitkeep lib/features/.gitkeep \
         test/widget_test.dart
 git commit -m "feat(core): Card 4 - Khoi tao project Flutter va khung Clean Architecture"
 
@@ -198,28 +199,28 @@ git tag -a v0.4-sprint4 -m "Release v0.4: Hoàn thành Sprint 4 (Cloud Sync, PDF
 
 ### 2.6. Bước 5: Đóng gói Tài liệu Kiểm toán & Chuẩn bị Sprint 5
 ```bash
-# Commit tài liệu kỹ thuật, báo cáo nghiệm thu và kịch bản commit
-git add TECHNICAL_JUSTIFICATION.md PROJECT_AUDIT_REPORT.md git_sprint_commit_plan.md commit_sprints.sh
-git commit -m "docs(audit): Hoan thien bao cao kiem toan kien truc va ke hoach Git commit Sprint"
+# Commit tài liệu kỹ thuật, báo cáo nghiệm thu và hướng dẫn Git
+git add TECHNICAL_JUSTIFICATION.md PROJECT_AUDIT_REPORT.md git_sprint_commit_plan.md
+git commit -m "docs(audit): Hoan thien tai lieu kien truc va huong dan Git theo Sprint"
 git tag -a v1.0.0-final -m "Release v1.0.0: Sẵn sàng bảo vệ đồ án Sprint 5"
 ```
 
 ---
 
-## 3. Hướng Dẫn Chạy Script Tự Động (`commit_sprints.sh`)
+## 3. Kiểm tra sau mỗi Card và mỗi Sprint
 
-Repository đã được trang bị sẵn script shell tự động hoá toàn bộ các bước trên. Bạn chỉ cần mở Terminal tại thư mục gốc và chạy:
+Sau mỗi lệnh `git add`, kiểm tra đúng các tệp sẽ được commit. Nếu danh sách chưa đúng, chỉnh lại trước khi chạy `git commit`:
 
 ```bash
-# 1. Cấp quyền thực thi cho script
-chmod +x commit_sprints.sh
-
-# 2. Chạy script tự động (tùy chọn cờ -f hoặc --force để tự động làm mới repo nếu đã có .git)
-./commit_sprints.sh --force
+git diff --cached --name-only
+git status --short
 ```
 
-Sau khi chạy xong, kiểm tra lại toàn bộ cây lịch sử Git bằng lệnh:
+Sau khi hoàn thành các Sprint, xem lịch sử commit và tag:
+
 ```bash
 git log --oneline --graph --all --decorate
+git tag --list
 ```
-Bạn sẽ thấy một cây lịch sử Git chuẩn mực, đẹp mắt và phản ánh 100% tiến độ thực tế theo đúng kế hoạch Trello.
+
+Nếu một lệnh báo lỗi hoặc không có thay đổi để commit, dừng tại bước đó, kiểm tra lại tệp và trạng thái Git rồi mới tiếp tục. Chỉ tạo tag cuối khi tài liệu và sản phẩm đã được kiểm tra, nghiệm thu.
