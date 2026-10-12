@@ -1,0 +1,21 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "field_inventory_edge_ai",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "field_inventory_edge_ai (No Impeller)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--no-enable-impeller"
+      ]
+    }
+  ]
+}
