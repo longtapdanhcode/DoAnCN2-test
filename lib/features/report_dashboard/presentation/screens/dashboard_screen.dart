@@ -6,6 +6,35 @@ import 'package:printing/printing.dart';
 
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
+
+/// Hàm dùng chung để kích hoạt đồng bộ dữ liệu ngoại tuyến lên Supabase Cloud
+Future<void> _triggerSync(BuildContext context, WidgetRef ref) async {
+  final syncState = ref.read(syncControllerProvider);
+  if (syncState.isLoading) return;
+
+  try {
+    final count = await ref.read(syncControllerProvider.notifier).syncAll();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã đồng bộ thành công $count bản ghi lên Supabase!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi đồng bộ lên Supabase: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+}
 
 /// Hàm dùng chung để xuất báo cáo PDF và mở hộp thoại chia sẻ hệ thống
 Future<void> _exportPdfReport(BuildContext context, WidgetRef ref) async {
@@ -70,6 +99,9 @@ class MobileDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncControllerProvider);
+    final isSyncing = syncState.isLoading;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Field Inventory & Edge AI'),
@@ -80,6 +112,23 @@ class MobileDashboard extends ConsumerWidget {
             tooltip: 'Xuất Báo cáo PDF',
             onPressed: () => _exportPdfReport(context, ref),
           ),
+          if (isSyncing)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.cloud_upload_outlined),
+              tooltip: 'Đồng bộ Supabase',
+              onPressed: () => _triggerSync(context, ref),
+            ),
         ],
       ),
       body: Center(
@@ -165,6 +214,8 @@ class _DesktopDashboardState extends ConsumerState<DesktopDashboard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final syncState = ref.watch(syncControllerProvider);
+    final isSyncing = syncState.isLoading;
 
     return Scaffold(
       body: Row(
@@ -244,16 +295,15 @@ class _DesktopDashboardState extends ConsumerState<DesktopDashboard> {
                       ),
                       _SidebarItem(
                         icon: Icons.cloud_sync_rounded,
-                        label: 'Đồng bộ Supabase',
+                        label: isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ Supabase',
                         isSelected: _selectedIndex == 2,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tính năng đồng bộ tự động đang hoạt động!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        isLoading: isSyncing,
+                        onTap: isSyncing
+                            ? () {}
+                            : () {
+                                setState(() => _selectedIndex = 2);
+                                _triggerSync(context, ref);
+                              },
                       ),
                       _SidebarItem(
                         icon: Icons.settings_rounded,
@@ -328,6 +378,24 @@ class _DesktopDashboardState extends ConsumerState<DesktopDashboard> {
                             tooltip: 'Xuất Báo cáo PDF',
                             onPressed: () => _exportPdfReport(context, ref),
                           ),
+                          const Gap(8),
+                          if (isSyncing)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.cloud_upload_outlined),
+                              tooltip: 'Đồng bộ Supabase',
+                              onPressed: () => _triggerSync(context, ref),
+                            ),
                           const Gap(8),
                           FilledButton.icon(
                             onPressed: () => context.push('/scanner'),
@@ -500,12 +568,14 @@ class _SidebarItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool isLoading;
   final VoidCallback onTap;
 
   const _SidebarItem({
     required this.icon,
     required this.label,
     required this.isSelected,
+    this.isLoading = false,
     required this.onTap,
   });
 
@@ -518,10 +588,16 @@ class _SidebarItem extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: ListTile(
-          leading: Icon(
-            icon,
-            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-          ),
+          leading: isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  icon,
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
           title: Text(
             label,
             style: TextStyle(
@@ -529,6 +605,13 @@ class _SidebarItem extends StatelessWidget {
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
             ),
           ),
+          trailing: isLoading
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
           selected: isSelected,
           selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(

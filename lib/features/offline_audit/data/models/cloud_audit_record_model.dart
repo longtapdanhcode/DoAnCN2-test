@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'audit_record_model.dart';
 
 /// Data model đại diện cho bản ghi kiểm kê lưu trữ trên Supabase Cloud Database.
@@ -62,11 +64,11 @@ class CloudAuditRecordModel {
   /// Tạo instance [CloudAuditRecordModel] từ [AuditRecordModel] offline
   factory CloudAuditRecordModel.fromAuditRecordModel(
     AuditRecordModel record, {
-    required String id,
+    String? id,
     String? signatureUrl,
   }) {
     return CloudAuditRecordModel(
-      id: id,
+      id: id ?? _generateUuidV4(),
       scanCode: record.scanCode ?? '',
       aiDetectedLabel: record.aiDetectedLabel,
       quantity: record.quantity,
@@ -74,6 +76,15 @@ class CloudAuditRecordModel {
           (record.timestamp ?? DateTime.now()).toUtc().toIso8601String(),
       signatureUrl: signatureUrl,
     );
+  }
+
+  static String _generateUuidV4() {
+    final random = Random();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // RFC4122 version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC4122 variant
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
   CloudAuditRecordModel copyWith({
