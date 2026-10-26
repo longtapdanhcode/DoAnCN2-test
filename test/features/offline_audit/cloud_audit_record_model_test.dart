@@ -9,14 +9,14 @@ void main() {
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/shared_preferences'),
-    (MethodCall methodCall) async {
-      if (methodCall.method == 'getAll') {
-        return <String, dynamic>{};
-      }
-      return true;
-    },
-  );
+        const MethodChannel('plugins.flutter.io/shared_preferences'),
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'getAll') {
+            return <String, dynamic>{};
+          }
+          return true;
+        },
+      );
 
   group('SupabaseConfig Tests', () {
     test('SupabaseConfig properties are valid strings', () {
@@ -75,11 +75,52 @@ void main() {
       expect(model.signatureUrl, isNull);
     });
 
+    test('Field details map to snake_case columns and back', () {
+      const model = CloudAuditRecordModel(
+        id: 'uuid-details',
+        scanCode: 'TS-DC-0142',
+        quantity: 8,
+        area: 'Xưởng sản xuất A',
+        location: 'Kệ A3',
+        condition: 'damaged',
+        notes: 'Cần thay vòng bi',
+        assetName: 'Động cơ điện Siemens',
+        signerName: 'Nguyễn Minh Anh',
+        signerRole: 'Tổ trưởng',
+        timestamp: '2026-10-22T09:44:00.000Z',
+      );
+
+      final json = model.toJson();
+      expect(json['asset_name'], 'Động cơ điện Siemens');
+      expect(json['signer_name'], 'Nguyễn Minh Anh');
+      expect(json['signer_role'], 'Tổ trưởng');
+      expect(json['area'], 'Xưởng sản xuất A');
+      expect(json['location'], 'Kệ A3');
+      expect(json['condition'], 'damaged');
+      expect(json['notes'], 'Cần thay vòng bi');
+      expect(CloudAuditRecordModel.fromJson(json), model);
+
+      // Trường trống không được gửi lên để không ghi đè cột bằng null.
+      const bare = CloudAuditRecordModel(
+        id: 'uuid-bare',
+        scanCode: 'X',
+        quantity: 1,
+        timestamp: '2026-10-22T09:44:00.000Z',
+      );
+      expect(bare.toJson().containsKey('area'), isFalse);
+      expect(bare.toJson().containsKey('notes'), isFalse);
+    });
+
     test('fromAuditRecordModel converts local Isar model correctly', () {
       final localRecord = AuditRecordModel(10)
         ..scanCode = 'LOCAL-001'
         ..aiDetectedLabel = 'Chair'
         ..quantity = 12
+        ..area = 'Kho trung tâm'
+        ..condition = 'good'
+        ..notes = 'OK'
+        ..assetName = 'Ghế văn phòng'
+        ..signerName = 'Hoàng An'
         ..timestamp = DateTime.utc(2026, 10, 6, 10, 0, 0);
 
       final cloudModel = CloudAuditRecordModel.fromAuditRecordModel(
@@ -92,6 +133,13 @@ void main() {
       expect(cloudModel.scanCode, 'LOCAL-001');
       expect(cloudModel.aiDetectedLabel, 'Chair');
       expect(cloudModel.quantity, 12);
+      expect(cloudModel.area, 'Kho trung tâm');
+      expect(cloudModel.location, isNull);
+      expect(cloudModel.condition, 'good');
+      expect(cloudModel.notes, 'OK');
+      expect(cloudModel.assetName, 'Ghế văn phòng');
+      expect(cloudModel.signerName, 'Hoàng An');
+      expect(cloudModel.signerRole, isNull);
       expect(cloudModel.timestamp, '2026-10-06T10:00:00.000Z');
       expect(cloudModel.signatureUrl, 'https://supabase.co/sig.png');
     });

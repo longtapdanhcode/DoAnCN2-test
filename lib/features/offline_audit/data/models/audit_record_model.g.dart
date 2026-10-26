@@ -23,8 +23,15 @@ final AuditRecordModelSchema = IsarGeneratedSchema(
     properties: [
       IsarPropertySchema(name: 'scanCode', type: IsarType.string),
       IsarPropertySchema(name: 'aiDetectedLabel', type: IsarType.string),
+      IsarPropertySchema(name: 'assetName', type: IsarType.string),
       IsarPropertySchema(name: 'quantity', type: IsarType.long),
+      IsarPropertySchema(name: 'area', type: IsarType.string),
+      IsarPropertySchema(name: 'location', type: IsarType.string),
+      IsarPropertySchema(name: 'condition', type: IsarType.string),
+      IsarPropertySchema(name: 'notes', type: IsarType.string),
       IsarPropertySchema(name: 'signatureBytes', type: IsarType.longList),
+      IsarPropertySchema(name: 'signerName', type: IsarType.string),
+      IsarPropertySchema(name: 'signerRole', type: IsarType.string),
       IsarPropertySchema(name: 'timestamp', type: IsarType.dateTime),
       IsarPropertySchema(name: 'isSynced', type: IsarType.bool),
     ],
@@ -56,25 +63,81 @@ int serializeAuditRecordModel(IsarWriter writer, AuditRecordModel object) {
       IsarCore.writeString(writer, 2, value);
     }
   }
-  IsarCore.writeLong(writer, 3, object.quantity);
+  {
+    final value = object.assetName;
+    if (value == null) {
+      IsarCore.writeNull(writer, 3);
+    } else {
+      IsarCore.writeString(writer, 3, value);
+    }
+  }
+  IsarCore.writeLong(writer, 4, object.quantity);
+  {
+    final value = object.area;
+    if (value == null) {
+      IsarCore.writeNull(writer, 5);
+    } else {
+      IsarCore.writeString(writer, 5, value);
+    }
+  }
+  {
+    final value = object.location;
+    if (value == null) {
+      IsarCore.writeNull(writer, 6);
+    } else {
+      IsarCore.writeString(writer, 6, value);
+    }
+  }
+  {
+    final value = object.condition;
+    if (value == null) {
+      IsarCore.writeNull(writer, 7);
+    } else {
+      IsarCore.writeString(writer, 7, value);
+    }
+  }
+  {
+    final value = object.notes;
+    if (value == null) {
+      IsarCore.writeNull(writer, 8);
+    } else {
+      IsarCore.writeString(writer, 8, value);
+    }
+  }
   {
     final list = object.signatureBytes;
     if (list == null) {
-      IsarCore.writeNull(writer, 4);
+      IsarCore.writeNull(writer, 9);
     } else {
-      final listWriter = IsarCore.beginList(writer, 4, list.length);
+      final listWriter = IsarCore.beginList(writer, 9, list.length);
       for (var i = 0; i < list.length; i++) {
         IsarCore.writeLong(listWriter, i, list[i]);
       }
       IsarCore.endList(writer, listWriter);
     }
   }
+  {
+    final value = object.signerName;
+    if (value == null) {
+      IsarCore.writeNull(writer, 10);
+    } else {
+      IsarCore.writeString(writer, 10, value);
+    }
+  }
+  {
+    final value = object.signerRole;
+    if (value == null) {
+      IsarCore.writeNull(writer, 11);
+    } else {
+      IsarCore.writeString(writer, 11, value);
+    }
+  }
   IsarCore.writeLong(
     writer,
-    5,
+    12,
     object.timestamp?.toUtc().microsecondsSinceEpoch ?? -9223372036854775808,
   );
-  IsarCore.writeBool(writer, 6, value: object.isSynced);
+  IsarCore.writeBool(writer, 13, value: object.isSynced);
   return object.id;
 }
 
@@ -84,7 +147,7 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
   _id = IsarCore.readId(reader);
   final List<int>? _signatureBytes;
   {
-    final length = IsarCore.readList(reader, 4, IsarCore.readerPtrPtr);
+    final length = IsarCore.readList(reader, 9, IsarCore.readerPtrPtr);
     {
       final reader = IsarCore.readerPtr;
       if (reader.isNull) {
@@ -106,9 +169,16 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
   final object = AuditRecordModel(_id, signatureBytes: _signatureBytes);
   object.scanCode = IsarCore.readString(reader, 1);
   object.aiDetectedLabel = IsarCore.readString(reader, 2);
-  object.quantity = IsarCore.readLong(reader, 3);
+  object.assetName = IsarCore.readString(reader, 3);
+  object.quantity = IsarCore.readLong(reader, 4);
+  object.area = IsarCore.readString(reader, 5);
+  object.location = IsarCore.readString(reader, 6);
+  object.condition = IsarCore.readString(reader, 7);
+  object.notes = IsarCore.readString(reader, 8);
+  object.signerName = IsarCore.readString(reader, 10);
+  object.signerRole = IsarCore.readString(reader, 11);
   {
-    final value = IsarCore.readLong(reader, 5);
+    final value = IsarCore.readLong(reader, 12);
     if (value == -9223372036854775808) {
       object.timestamp = null;
     } else {
@@ -118,7 +188,7 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
       ).toLocal();
     }
   }
-  object.isSynced = IsarCore.readBool(reader, 6);
+  object.isSynced = IsarCore.readBool(reader, 13);
   return object;
 }
 
@@ -132,10 +202,20 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
     case 2:
       return IsarCore.readString(reader, 2);
     case 3:
-      return IsarCore.readLong(reader, 3);
+      return IsarCore.readString(reader, 3);
     case 4:
+      return IsarCore.readLong(reader, 4);
+    case 5:
+      return IsarCore.readString(reader, 5);
+    case 6:
+      return IsarCore.readString(reader, 6);
+    case 7:
+      return IsarCore.readString(reader, 7);
+    case 8:
+      return IsarCore.readString(reader, 8);
+    case 9:
       {
-        final length = IsarCore.readList(reader, 4, IsarCore.readerPtrPtr);
+        final length = IsarCore.readList(reader, 9, IsarCore.readerPtrPtr);
         {
           final reader = IsarCore.readerPtr;
           if (reader.isNull) {
@@ -154,9 +234,13 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
           }
         }
       }
-    case 5:
+    case 10:
+      return IsarCore.readString(reader, 10);
+    case 11:
+      return IsarCore.readString(reader, 11);
+    case 12:
       {
-        final value = IsarCore.readLong(reader, 5);
+        final value = IsarCore.readLong(reader, 12);
         if (value == -9223372036854775808) {
           return null;
         } else {
@@ -166,8 +250,8 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
           ).toLocal();
         }
       }
-    case 6:
-      return IsarCore.readBool(reader, 6);
+    case 13:
+      return IsarCore.readBool(reader, 13);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -178,7 +262,14 @@ sealed class _AuditRecordModelUpdate {
     required int id,
     String? scanCode,
     String? aiDetectedLabel,
+    String? assetName,
     int? quantity,
+    String? area,
+    String? location,
+    String? condition,
+    String? notes,
+    String? signerName,
+    String? signerRole,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -194,7 +285,14 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
     required int id,
     Object? scanCode = ignore,
     Object? aiDetectedLabel = ignore,
+    Object? assetName = ignore,
     Object? quantity = ignore,
+    Object? area = ignore,
+    Object? location = ignore,
+    Object? condition = ignore,
+    Object? notes = ignore,
+    Object? signerName = ignore,
+    Object? signerRole = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -203,9 +301,16 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
           {
             if (scanCode != ignore) 1: scanCode as String?,
             if (aiDetectedLabel != ignore) 2: aiDetectedLabel as String?,
-            if (quantity != ignore) 3: quantity as int?,
-            if (timestamp != ignore) 5: timestamp as DateTime?,
-            if (isSynced != ignore) 6: isSynced as bool?,
+            if (assetName != ignore) 3: assetName as String?,
+            if (quantity != ignore) 4: quantity as int?,
+            if (area != ignore) 5: area as String?,
+            if (location != ignore) 6: location as String?,
+            if (condition != ignore) 7: condition as String?,
+            if (notes != ignore) 8: notes as String?,
+            if (signerName != ignore) 10: signerName as String?,
+            if (signerRole != ignore) 11: signerRole as String?,
+            if (timestamp != ignore) 12: timestamp as DateTime?,
+            if (isSynced != ignore) 13: isSynced as bool?,
           },
         ) >
         0;
@@ -217,7 +322,14 @@ sealed class _AuditRecordModelUpdateAll {
     required List<int> id,
     String? scanCode,
     String? aiDetectedLabel,
+    String? assetName,
     int? quantity,
+    String? area,
+    String? location,
+    String? condition,
+    String? notes,
+    String? signerName,
+    String? signerRole,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -233,16 +345,30 @@ class _AuditRecordModelUpdateAllImpl implements _AuditRecordModelUpdateAll {
     required List<int> id,
     Object? scanCode = ignore,
     Object? aiDetectedLabel = ignore,
+    Object? assetName = ignore,
     Object? quantity = ignore,
+    Object? area = ignore,
+    Object? location = ignore,
+    Object? condition = ignore,
+    Object? notes = ignore,
+    Object? signerName = ignore,
+    Object? signerRole = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
     return collection.updateProperties(id, {
       if (scanCode != ignore) 1: scanCode as String?,
       if (aiDetectedLabel != ignore) 2: aiDetectedLabel as String?,
-      if (quantity != ignore) 3: quantity as int?,
-      if (timestamp != ignore) 5: timestamp as DateTime?,
-      if (isSynced != ignore) 6: isSynced as bool?,
+      if (assetName != ignore) 3: assetName as String?,
+      if (quantity != ignore) 4: quantity as int?,
+      if (area != ignore) 5: area as String?,
+      if (location != ignore) 6: location as String?,
+      if (condition != ignore) 7: condition as String?,
+      if (notes != ignore) 8: notes as String?,
+      if (signerName != ignore) 10: signerName as String?,
+      if (signerRole != ignore) 11: signerRole as String?,
+      if (timestamp != ignore) 12: timestamp as DateTime?,
+      if (isSynced != ignore) 13: isSynced as bool?,
     });
   }
 }
@@ -258,7 +384,14 @@ sealed class _AuditRecordModelQueryUpdate {
   int call({
     String? scanCode,
     String? aiDetectedLabel,
+    String? assetName,
     int? quantity,
+    String? area,
+    String? location,
+    String? condition,
+    String? notes,
+    String? signerName,
+    String? signerRole,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -274,16 +407,30 @@ class _AuditRecordModelQueryUpdateImpl implements _AuditRecordModelQueryUpdate {
   int call({
     Object? scanCode = ignore,
     Object? aiDetectedLabel = ignore,
+    Object? assetName = ignore,
     Object? quantity = ignore,
+    Object? area = ignore,
+    Object? location = ignore,
+    Object? condition = ignore,
+    Object? notes = ignore,
+    Object? signerName = ignore,
+    Object? signerRole = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (scanCode != ignore) 1: scanCode as String?,
       if (aiDetectedLabel != ignore) 2: aiDetectedLabel as String?,
-      if (quantity != ignore) 3: quantity as int?,
-      if (timestamp != ignore) 5: timestamp as DateTime?,
-      if (isSynced != ignore) 6: isSynced as bool?,
+      if (assetName != ignore) 3: assetName as String?,
+      if (quantity != ignore) 4: quantity as int?,
+      if (area != ignore) 5: area as String?,
+      if (location != ignore) 6: location as String?,
+      if (condition != ignore) 7: condition as String?,
+      if (notes != ignore) 8: notes as String?,
+      if (signerName != ignore) 10: signerName as String?,
+      if (signerRole != ignore) 11: signerRole as String?,
+      if (timestamp != ignore) 12: timestamp as DateTime?,
+      if (isSynced != ignore) 13: isSynced as bool?,
     });
   }
 }
@@ -307,7 +454,14 @@ class _AuditRecordModelQueryBuilderUpdateImpl
   int call({
     Object? scanCode = ignore,
     Object? aiDetectedLabel = ignore,
+    Object? assetName = ignore,
     Object? quantity = ignore,
+    Object? area = ignore,
+    Object? location = ignore,
+    Object? condition = ignore,
+    Object? notes = ignore,
+    Object? signerName = ignore,
+    Object? signerRole = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -316,9 +470,16 @@ class _AuditRecordModelQueryBuilderUpdateImpl
       return q.updateProperties(limit: limit, {
         if (scanCode != ignore) 1: scanCode as String?,
         if (aiDetectedLabel != ignore) 2: aiDetectedLabel as String?,
-        if (quantity != ignore) 3: quantity as int?,
-        if (timestamp != ignore) 5: timestamp as DateTime?,
-        if (isSynced != ignore) 6: isSynced as bool?,
+        if (assetName != ignore) 3: assetName as String?,
+        if (quantity != ignore) 4: quantity as int?,
+        if (area != ignore) 5: area as String?,
+        if (location != ignore) 6: location as String?,
+        if (condition != ignore) 7: condition as String?,
+        if (notes != ignore) 8: notes as String?,
+        if (signerName != ignore) 10: signerName as String?,
+        if (signerRole != ignore) 11: signerRole as String?,
+        if (timestamp != ignore) 12: timestamp as DateTime?,
+        if (isSynced != ignore) 13: isSynced as bool?,
       });
     } finally {
       q.close();
@@ -707,73 +868,162 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityEqualTo(int value) {
+  assetNameIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        EqualCondition(property: 3, value: value),
-      );
+      return query.addFilterCondition(const IsNullCondition(property: 3));
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityGreaterThan(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        GreaterCondition(property: 3, value: value),
-      );
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityGreaterThanOrEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        GreaterOrEqualCondition(property: 3, value: value),
-      );
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityLessThan(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(LessCondition(property: 3, value: value));
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityLessThanOrEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        LessOrEqualCondition(property: 3, value: value),
-      );
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  quantityBetween(int lower, int upper) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        BetweenCondition(property: 3, lower: lower, upper: upper),
-      );
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 4));
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesIsNotNull() {
+  assetNameIsNotNull() {
     return QueryBuilder.apply(not(), (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 4));
+      return query.addFilterCondition(const IsNullCondition(property: 3));
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementEqualTo(int value) {
+  assetNameEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 3, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 3, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 3,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 3,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 3, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  assetNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 3, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  quantityEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EqualCondition(property: 4, value: value),
@@ -782,7 +1032,7 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementGreaterThan(int value) {
+  quantityGreaterThan(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(property: 4, value: value),
@@ -791,7 +1041,7 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementGreaterThanOrEqualTo(int value) {
+  quantityGreaterThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(property: 4, value: value),
@@ -800,14 +1050,14 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementLessThan(int value) {
+  quantityLessThan(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(LessCondition(property: 4, value: value));
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementLessThanOrEqualTo(int value) {
+  quantityLessThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(property: 4, value: value),
@@ -816,10 +1066,696 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  signatureBytesElementBetween(int lower, int upper) {
+  quantityBetween(int lower, int upper) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(property: 4, lower: lower, upper: upper),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 5));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 5));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 5, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 5, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 5,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 5,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 5,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 5, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  areaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 5, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 6));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 6));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 6, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 6, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 6,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 6,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 6,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 6, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  locationIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 6, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 7));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 7));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 7, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 7, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 7,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 7,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 7,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 7, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  conditionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 7, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 8));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 8));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 8, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 8, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 8,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 8,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 8,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 8, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  notesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 8, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 9));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 9));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 9, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementGreaterThan(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(property: 9, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementGreaterThanOrEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 9, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementLessThan(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(LessCondition(property: 9, value: value));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementLessThanOrEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 9, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureBytesElementBetween(int lower, int upper) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(property: 9, lower: lower, upper: upper),
       );
     });
   }
@@ -835,7 +1771,325 @@ extension AuditRecordModelQueryFilter
   signatureBytesIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterOrEqualCondition(property: 4, value: null),
+        const GreaterOrEqualCondition(property: 9, value: null),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 10));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 10));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 10, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 10,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 10,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 10, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 10, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 11));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 11));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 11, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 11,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 11,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 11, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signerRoleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 11, value: ''),
       );
     });
   }
@@ -843,14 +2097,14 @@ extension AuditRecordModelQueryFilter
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
   timestampIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 5));
+      return query.addFilterCondition(const IsNullCondition(property: 12));
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
   timestampIsNotNull() {
     return QueryBuilder.apply(not(), (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 5));
+      return query.addFilterCondition(const IsNullCondition(property: 12));
     });
   }
 
@@ -858,7 +2112,7 @@ extension AuditRecordModelQueryFilter
   timestampEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 5, value: value),
+        EqualCondition(property: 12, value: value),
       );
     });
   }
@@ -867,7 +2121,7 @@ extension AuditRecordModelQueryFilter
   timestampGreaterThan(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        GreaterCondition(property: 5, value: value),
+        GreaterCondition(property: 12, value: value),
       );
     });
   }
@@ -876,7 +2130,7 @@ extension AuditRecordModelQueryFilter
   timestampGreaterThanOrEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        GreaterOrEqualCondition(property: 5, value: value),
+        GreaterOrEqualCondition(property: 12, value: value),
       );
     });
   }
@@ -884,7 +2138,9 @@ extension AuditRecordModelQueryFilter
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
   timestampLessThan(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(LessCondition(property: 5, value: value));
+      return query.addFilterCondition(
+        LessCondition(property: 12, value: value),
+      );
     });
   }
 
@@ -892,7 +2148,7 @@ extension AuditRecordModelQueryFilter
   timestampLessThanOrEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessOrEqualCondition(property: 5, value: value),
+        LessOrEqualCondition(property: 12, value: value),
       );
     });
   }
@@ -901,7 +2157,7 @@ extension AuditRecordModelQueryFilter
   timestampBetween(DateTime? lower, DateTime? upper) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        BetweenCondition(property: 5, lower: lower, upper: upper),
+        BetweenCondition(property: 12, lower: lower, upper: upper),
       );
     });
   }
@@ -910,7 +2166,7 @@ extension AuditRecordModelQueryFilter
   isSyncedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 6, value: value),
+        EqualCondition(property: 13, value: value),
       );
     });
   }
@@ -963,44 +2219,144 @@ extension AuditRecordModelQuerySortBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByAssetName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByAssetNameDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByQuantity() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(3);
+      return query.addSortBy(4);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(3, sort: Sort.desc);
+      return query.addSortBy(4, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy> sortByArea({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(5, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByAreaDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(5, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByLocation({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByLocationDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByCondition({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByConditionDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy> sortByNotes({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(8, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByNotesDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(8, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignerName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignerNameDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignerRole({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignerRoleDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByTimestamp() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(5);
+      return query.addSortBy(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByTimestampDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(5, sort: Sort.desc);
+      return query.addSortBy(12, sort: Sort.desc);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(6);
+      return query.addSortBy(13);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByIsSyncedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(6, sort: Sort.desc);
+      return query.addSortBy(13, sort: Sort.desc);
     });
   }
 }
@@ -1049,44 +2405,144 @@ extension AuditRecordModelQuerySortThenBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByAssetName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByAssetNameDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByQuantity() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(3);
+      return query.addSortBy(4);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(3, sort: Sort.desc);
+      return query.addSortBy(4, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy> thenByArea({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(5, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByAreaDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(5, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByLocation({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByLocationDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByCondition({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByConditionDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy> thenByNotes({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(8, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByNotesDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(8, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignerName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignerNameDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignerRole({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignerRoleDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByTimestamp() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(5);
+      return query.addSortBy(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByTimestampDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(5, sort: Sort.desc);
+      return query.addSortBy(12, sort: Sort.desc);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(6);
+      return query.addSortBy(13);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByIsSyncedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(6, sort: Sort.desc);
+      return query.addSortBy(13, sort: Sort.desc);
     });
   }
 }
@@ -1108,30 +2564,79 @@ extension AuditRecordModelQueryWhereDistinct
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
-  distinctByQuantity() {
+  distinctByAssetName({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(3);
+      return query.addDistinctBy(3, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
-  distinctBySignatureBytes() {
+  distinctByQuantity() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(4);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByArea({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(5, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByLocation({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(6, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByCondition({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(7, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByNotes({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(8, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctBySignatureBytes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(9);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctBySignerName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(10, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctBySignerRole({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
   distinctByTimestamp() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(5);
+      return query.addDistinctBy(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
   distinctByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(6);
+      return query.addDistinctBy(13);
     });
   }
 }
@@ -1157,29 +2662,71 @@ extension AuditRecordModelQueryProperty1
     });
   }
 
-  QueryBuilder<AuditRecordModel, int, QAfterProperty> quantityProperty() {
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> assetNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(3);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, int, QAfterProperty> quantityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(4);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> areaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(5);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> locationProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(6);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> conditionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(7);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> notesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<AuditRecordModel, List<int>?, QAfterProperty>
   signatureBytesProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(4);
+      return query.addProperty(9);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> signerNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty> signerRoleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
     });
   }
 
   QueryBuilder<AuditRecordModel, DateTime?, QAfterProperty>
   timestampProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(5);
+      return query.addProperty(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, bool, QAfterProperty> isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(6);
+      return query.addProperty(13);
     });
   }
 }
@@ -1206,29 +2753,76 @@ extension AuditRecordModelQueryProperty2<R>
     });
   }
 
-  QueryBuilder<AuditRecordModel, (R, int), QAfterProperty> quantityProperty() {
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  assetNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(3);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, int), QAfterProperty> quantityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(4);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty> areaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(5);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  locationProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(6);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  conditionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(7);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty> notesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R, List<int>?), QAfterProperty>
   signatureBytesProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(4);
+      return query.addProperty(9);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  signerNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  signerRoleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R, DateTime?), QAfterProperty>
   timestampProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(5);
+      return query.addProperty(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R, bool), QAfterProperty> isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(6);
+      return query.addProperty(13);
     });
   }
 }
@@ -1255,31 +2849,80 @@ extension AuditRecordModelQueryProperty3<R1, R2>
     });
   }
 
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  assetNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(3);
+    });
+  }
+
   QueryBuilder<AuditRecordModel, (R1, R2, int), QOperations>
   quantityProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(3);
+      return query.addProperty(4);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  areaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(5);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  locationProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(6);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  conditionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(7);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  notesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R1, R2, List<int>?), QOperations>
   signatureBytesProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(4);
+      return query.addProperty(9);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  signerNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  signerRoleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R1, R2, DateTime?), QOperations>
   timestampProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(5);
+      return query.addProperty(12);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R1, R2, bool), QOperations>
   isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(6);
+      return query.addProperty(13);
     });
   }
 }

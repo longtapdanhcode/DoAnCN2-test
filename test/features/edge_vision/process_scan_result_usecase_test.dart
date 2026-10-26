@@ -6,11 +6,13 @@ void main() {
   group('ProcessScanResultUseCase', () {
     const useCase = ProcessScanResultUseCase();
 
-    test('executeFromRaw returns null when raw string is empty or whitespace',
-        () {
-      expect(useCase.executeFromRaw(''), isNull);
-      expect(useCase.executeFromRaw('   \n  '), isNull);
-    });
+    test(
+      'executeFromRaw returns null when raw string is empty or whitespace',
+      () {
+        expect(useCase.executeFromRaw(''), isNull);
+        expect(useCase.executeFromRaw('   \n  '), isNull);
+      },
+    );
 
     test('executeFromRaw returns formatted ScanResult when input is valid', () {
       final result = useCase.executeFromRaw(

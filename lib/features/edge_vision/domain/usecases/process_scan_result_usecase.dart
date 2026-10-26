@@ -1,4 +1,5 @@
 import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../entities/scan_result.dart';
 
 class ProcessScanResultUseCase {

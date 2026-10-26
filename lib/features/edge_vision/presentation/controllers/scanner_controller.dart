@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,6 +33,9 @@ class ScannerUiState {
   final bool isTorchOn;
   final ScanResult? latestResult;
   final List<String> detectedObjects;
+
+  /// Khung hình camera lúc quét thành công, dùng làm hình xác nhận.
+  final Uint8List? successFrame;
   final String? errorMessage;
 
   const ScannerUiState({
@@ -38,6 +43,7 @@ class ScannerUiState {
     this.isTorchOn = false,
     this.latestResult,
     this.detectedObjects = const [],
+    this.successFrame,
     this.errorMessage,
   });
 
@@ -46,6 +52,8 @@ class ScannerUiState {
     bool? isTorchOn,
     ScanResult? latestResult,
     List<String>? detectedObjects,
+    Uint8List? successFrame,
+    bool clearSuccessFrame = false,
     String? errorMessage,
   }) {
     return ScannerUiState(
@@ -53,6 +61,9 @@ class ScannerUiState {
       isTorchOn: isTorchOn ?? this.isTorchOn,
       latestResult: latestResult ?? this.latestResult,
       detectedObjects: detectedObjects ?? this.detectedObjects,
+      successFrame: clearSuccessFrame
+          ? null
+          : (successFrame ?? this.successFrame),
       errorMessage: errorMessage,
     );
   }
@@ -77,14 +88,30 @@ class ScannerController extends _$ScannerController {
   bool _wasScanningBeforeInactive = false;
   bool _isAnalyzing = false;
 
+  /// Số khung liên tiếp không nhận ra gì; đủ [_clearAfterEmptyFrames] thì xoá nhãn cũ.
+  int _emptyFrames = 0;
+  static const int _clearAfterEmptyFrames = 3;
+
   @override
   ScannerUiState build() {
     return const ScannerUiState();
   }
 
+  /// Chuỗi tuần tự cho mọi lệnh bật/tắt camera.
+  ///
+  /// Sự kiện vòng đời (inactive → resumed) đến ngay sau hộp thoại xin quyền,
+  /// nên lệnh start có thể chạy khi lệnh stop trước đó chưa xong và iOS báo
+  /// "The scanner was already started". Xếp hàng các lệnh để tránh chồng nhau.
+  Future<void> _cameraQueue = Future<void>.value();
+
+  Future<void> _enqueueCamera(Future<void> Function() operation) {
+    final next = _cameraQueue.then((_) => operation());
+    _cameraQueue = next.catchError((Object _) {});
+    return next;
+  }
+
   ScannerRepository get _repository => ref.read(scannerRepositoryProvider);
-  VisionAiRepository get _visionAiRepo =>
-      ref.read(visionAiRepositoryProvider);
+  VisionAiRepository get _visionAiRepo => ref.read(visionAiRepositoryProvider);
   ProcessScanResultUseCase get _processUseCase =>
       ref.read(processScanResultUseCaseProvider);
 
@@ -106,8 +133,7 @@ class ScannerController extends _$ScannerController {
     } else if (status.isPermanentlyDenied) {
       state = state.copyWith(
         status: ScannerStatus.permissionPermanentlyDenied,
-        errorMessage:
-            'Quyền truy cập Camera đã bị từ chối vĩnh viễn. Vui lòng mở Cài đặt để cấp quyền.',
+        errorMessage: 'Quyền truy cập Camera đã bị từ chối vĩnh viễn. Vui lòng mở Cài đặt để cấp quyền.',
       );
     } else {
       await requestPermission();
@@ -124,14 +150,12 @@ class ScannerController extends _$ScannerController {
     } else if (status.isPermanentlyDenied) {
       state = state.copyWith(
         status: ScannerStatus.permissionPermanentlyDenied,
-        errorMessage:
-            'Quyền Camera bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt thiết bị.',
+        errorMessage: 'Quyền Camera bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt thiết bị.',
       );
     } else {
       state = state.copyWith(
         status: ScannerStatus.permissionDenied,
-        errorMessage:
-            'Ứng dụng cần quyền Camera để quét mã tài sản & kiểm kê hiện trường.',
+        errorMessage: 'Ứng dụng cần quyền Camera để quét mã tài sản & kiểm kê hiện trường.',
       );
     }
   }
@@ -142,7 +166,7 @@ class ScannerController extends _$ScannerController {
   }
 
   /// Bắt đầu stream camera
-  Future<void> startCamera() async {
+  Future<void> startCamera() => _enqueueCamera(() async {
     try {
       await _repository.start();
       state = state.copyWith(
@@ -156,10 +180,10 @@ class ScannerController extends _$ScannerController {
         errorMessage: 'Không thể khởi động camera: $e',
       );
     }
-  }
+  });
 
   /// Tạm dừng stream camera
-  Future<void> stopCamera() async {
+  Future<void> stopCamera() => _enqueueCamera(() async {
     try {
       await _repository.stop();
       if (state.status == ScannerStatus.scanning) {
@@ -168,19 +192,21 @@ class ScannerController extends _$ScannerController {
     } catch (e) {
       debugPrint('[ScannerController] Lỗi khi stop camera: $e');
     }
-  }
+  });
 
   /// Xử lý khi ứng dụng chuyển sang nền
   Future<void> onAppInactive() async {
     if (state.status == ScannerStatus.scanning) {
       _wasScanningBeforeInactive = true;
-      try {
-        await _repository.stop();
-        state = state.copyWith(status: ScannerStatus.paused);
-        debugPrint('[ScannerController] App inactive: Camera đã dừng.');
-      } catch (e) {
-        debugPrint('[ScannerController] Lỗi dừng camera khi inactive: $e');
-      }
+      await _enqueueCamera(() async {
+        try {
+          await _repository.stop();
+          state = state.copyWith(status: ScannerStatus.paused);
+          debugPrint('[ScannerController] App inactive: Camera đã dừng.');
+        } catch (e) {
+          debugPrint('[ScannerController] Lỗi dừng camera khi inactive: $e');
+        }
+      });
     }
   }
 
@@ -222,7 +248,12 @@ class ScannerController extends _$ScannerController {
       );
 
       if (objects.isNotEmpty) {
+        _emptyFrames = 0;
         state = state.copyWith(detectedObjects: objects);
+      } else if (state.detectedObjects.isNotEmpty &&
+          ++_emptyFrames >= _clearAfterEmptyFrames) {
+        _emptyFrames = 0;
+        state = state.copyWith(detectedObjects: const []);
       }
     } catch (e) {
       debugPrint('[ScannerController] Error during AI inference: $e');
@@ -241,10 +272,11 @@ class ScannerController extends _$ScannerController {
     for (final barcode in capture.barcodes) {
       final result = _processUseCase.execute(barcode);
       if (result != null) {
-        _repository.stop();
+        unawaited(_enqueueCamera(_repository.stop));
         state = state.copyWith(
           status: ScannerStatus.success,
           latestResult: result,
+          successFrame: capture.image,
         );
         break;
       }
@@ -255,6 +287,7 @@ class ScannerController extends _$ScannerController {
   Future<void> resumeScanning() async {
     state = state.copyWith(
       latestResult: null,
+      clearSuccessFrame: true,
       errorMessage: null,
     );
     await startCamera();

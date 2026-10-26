@@ -54,6 +54,7 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   intl: ^0.20.3
+  connectivity_plus: ^7.3.2
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,9 @@ dev_dependencies:
 dependency_overrides:
   analyzer: ^14.4.0
   analyzer_plugin: ^0.14.0
+  # Bản vá cục bộ: xem third_party/mobile_scanner/PATCH_NOTES.md
+  mobile_scanner:
+    path: third_party/mobile_scanner
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -88,6 +92,18 @@ flutter:
 
   assets:
     - assets/models/
+
+  # Inter đóng gói sẵn để app hiển thị đúng font khi ngoại tuyến (OFL, xem assets/fonts/inter/OFL.txt).
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter/Inter-Regular.ttf
+        - asset: assets/fonts/inter/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/inter/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/inter/Inter-Bold.ttf
+          weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

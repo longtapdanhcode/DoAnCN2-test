@@ -1,0 +1,77 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
+
+import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
+import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
+
+/// Kích hoạt đồng bộ dữ liệu ngoại tuyến lên Supabase Cloud.
+Future<void> triggerSync(BuildContext context, WidgetRef ref) async {
+  final syncState = ref.read(syncControllerProvider);
+  if (syncState.isLoading) return;
+
+  // Không thử gọi Supabase khi thiết bị không có mạng; phiếu vẫn nằm trên máy.
+  if (!checkOnline(ref)) {
+    showFlSnack(
+      context,
+      'Thiết bị đang ngoại tuyến. Phiếu vẫn được lưu trên máy và sẽ đồng bộ khi có mạng.',
+      tone: FlTone.warning,
+    );
+    return;
+  }
+
+  try {
+    final count = await ref.read(syncControllerProvider.notifier).syncAll();
+    final audits = count == 0
+        ? 'Không có phiếu nào cần đồng bộ.'
+        : 'Đã đồng bộ $count phiếu lên đám mây.';
+
+    // Danh mục tài sản đồng bộ riêng: lỗi ở đây không làm hỏng kết quả phiếu.
+    String catalog;
+    var catalogOk = true;
+    try {
+      final result = await ref.read(assetCatalogRepositoryProvider).sync();
+      catalog = ' Danh mục: ${result.pulled} tài sản.';
+    } catch (e) {
+      debugPrint('[Sync] Lỗi đồng bộ danh mục tài sản: $e');
+      catalogOk = false;
+      catalog = ' Chưa tải được danh mục tài sản, vui lòng thử lại.';
+    }
+
+    if (context.mounted) {
+      showFlSnack(
+        context,
+        '$audits$catalog',
+        tone: catalogOk ? FlTone.success : FlTone.warning,
+      );
+    }
+  } catch (e) {
+    debugPrint('[Sync] Lỗi đồng bộ phiếu kiểm kê: $e');
+    if (context.mounted) {
+      showFlSnack(
+        context,
+        'Chưa đồng bộ được. Dữ liệu vẫn an toàn trên máy, vui lòng thử lại.',
+        tone: FlTone.danger,
+      );
+    }
+  }
+}
+
+/// Xuất báo cáo PDF và mở hộp thoại chia sẻ hệ thống.
+Future<void> exportPdfReport(BuildContext context, WidgetRef ref) async {
+  try {
+    showFlSnack(context, 'Đang tạo báo cáo PDF...');
+
+    final repository = ref.read(auditRepositoryProvider);
+    final bytes = await repository.exportPdfReport();
+
+    await Printing.sharePdf(bytes: bytes, filename: 'bao_cao_kiem_ke.pdf');
+  } catch (e) {
+    if (context.mounted) {
+      showFlSnack(context, 'Lỗi khi xuất PDF: $e', tone: FlTone.danger);
+    }
+  }
+}

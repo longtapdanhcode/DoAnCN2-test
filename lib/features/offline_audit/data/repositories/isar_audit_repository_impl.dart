@@ -28,8 +28,15 @@ class IsarAuditRepositoryImpl implements AuditRepository {
         final toSave = AuditRecordModel(newId)
           ..scanCode = record.scanCode
           ..aiDetectedLabel = record.aiDetectedLabel
+          ..assetName = record.assetName
           ..quantity = record.quantity
+          ..area = record.area
+          ..location = record.location
+          ..condition = record.condition
+          ..notes = record.notes
           ..signatureBytes = record.signatureBytes
+          ..signerName = record.signerName
+          ..signerRole = record.signerRole
           ..timestamp = record.timestamp ?? DateTime.now()
           ..isSynced = record.isSynced;
         isar.auditRecordModels.put(toSave);

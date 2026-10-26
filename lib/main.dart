@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/database/local_db_init.dart';
 import 'core/network/supabase_config.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/fieldline_theme.dart';
 
 /// Entry point cho ứng dụng Field Inventory & Edge AI.
 ///
@@ -30,9 +31,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        isarInstanceProvider.overrideWithValue(isar),
-      ],
+      overrides: [isarInstanceProvider.overrideWithValue(isar)],
       child: const MyApp(),
     ),
   );
@@ -46,8 +45,9 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(goRouterProvider);
 
     return MaterialApp.router(
-      title: 'Field Inventory & Edge AI',
+      title: 'Fieldline — Field Inventory & Edge AI',
       debugShowCheckedModeBanner: false,
+      theme: buildFieldlineTheme(),
       routerConfig: router,
     );
   }

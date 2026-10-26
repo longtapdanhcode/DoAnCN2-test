@@ -1,3 +1,5 @@
+// Sao chép file này thành supabase_config.dart rồi điền URL và anon key
+// từ Supabase Dashboard (Project Settings -> API). supabase_config.dart không được commit.
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,10 +12,10 @@ class SupabaseConfig {
   const SupabaseConfig._();
 
   /// URL kết nối Supabase Project (ví dụ: 'https://xyzcompany.supabase.co').
-  static const String url = 'https://ksyqadzajepmrgaoweyi.supabase.co/rest/v1/';
+  static const String url = '';
 
   /// Public Anonymous / Publishable Key của Supabase Project.
-  static const String anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeXFhZHphamVwbXJnYW93ZXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNzYxMTEsImV4cCI6MjEwNTk1MjExMX0.Oe4TMBQ2ZiTbZPv8D4qgBlO6XoQEoctYAl9imf66NOE';
+  static const String anonKey = '';
 
   /// Alias publishableKey theo chuẩn mới của Supabase SDK.
   static String get publishableKey => anonKey;
