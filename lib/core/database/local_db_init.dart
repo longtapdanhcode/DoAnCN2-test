@@ -3,6 +3,7 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:field_inventory_edge_ai/features/asset_catalog/data/models/asset_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 
 part 'local_db_init.g.dart';
@@ -17,7 +18,7 @@ Future<Isar> initIsar() async {
   final dir = await getApplicationDocumentsDirectory();
 
   final isar = Isar.open(
-    schemas: [AuditRecordModelSchema],
+    schemas: [AuditRecordModelSchema, AssetModelSchema],
     directory: dir.path,
   );
 

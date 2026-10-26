@@ -26,7 +26,9 @@ class SupabaseSyncRepositoryImpl implements SyncRepository {
 
     try {
       final fileName = 'sig_${DateTime.now().millisecondsSinceEpoch}.png';
-      await _supabaseClient.storage.from('signatures').uploadBinary(
+      await _supabaseClient.storage
+          .from('signatures')
+          .uploadBinary(
             fileName,
             Uint8List.fromList(bytes),
             fileOptions: const FileOptions(contentType: 'image/png'),
@@ -44,13 +46,16 @@ class SupabaseSyncRepositoryImpl implements SyncRepository {
 
   @override
   Future<void> syncPendingRecords(List<AuditRecordModel> records) async {
-    final pendingRecords = records.where((record) => !record.isSynced).toList();
+    final pendingRecords = records
+        .where((record) => !record.isSynced && !record.isDraft)
+        .toList();
     if (pendingRecords.isEmpty) return;
 
     for (final record in pendingRecords) {
       try {
         String? uploadedUrl;
-        if (record.signatureBytes != null && record.signatureBytes!.isNotEmpty) {
+        if (record.signatureBytes != null &&
+            record.signatureBytes!.isNotEmpty) {
           uploadedUrl = await uploadSignature(record.signatureBytes!);
         }
 
@@ -59,9 +64,7 @@ class SupabaseSyncRepositoryImpl implements SyncRepository {
           signatureUrl: uploadedUrl,
         );
 
-        await _supabaseClient
-            .from('audit_records')
-            .upsert(cloudModel.toJson());
+        await _supabaseClient.from('audit_records').upsert(cloudModel.toJson());
 
         record.isSynced = true;
         await _isar.writeAsync((isar) {

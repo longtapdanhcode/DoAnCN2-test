@@ -7,7 +7,11 @@ import '../../data/repositories/supabase_sync_repository_impl.dart';
 part 'sync_controller.g.dart';
 
 /// Controller quản lý luồng đồng bộ bản ghi kiểm kê ngoại tuyến lên Cloud Supabase.
-@riverpod
+///
+/// Giữ sống suốt vòng đời app: đồng bộ có thể được gọi từ màn không theo dõi
+/// provider này (ví dụ màn Tài sản), và một provider tự huỷ sẽ bị dọn ngay
+/// giữa chừng, gây lỗi "Cannot use the Ref ... after it has been disposed".
+@Riverpod(keepAlive: true)
 class SyncController extends _$SyncController {
   @override
   FutureOr<void> build() {
@@ -23,7 +27,9 @@ class SyncController extends _$SyncController {
     try {
       final auditRepo = ref.read(isarAuditRepositoryProvider);
       final allRecords = await auditRepo.getAllRecords();
-      final pendingRecords = allRecords.where((r) => !r.isSynced).toList();
+      final pendingRecords = allRecords
+          .where((r) => !r.isSynced && !r.isDraft)
+          .toList();
 
       if (pendingRecords.isEmpty) {
         state = const AsyncData(null);

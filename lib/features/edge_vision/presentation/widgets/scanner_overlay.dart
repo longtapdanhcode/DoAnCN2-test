@@ -1,12 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 
 class ScannerOverlayWidget extends StatelessWidget {
   const ScannerOverlayWidget({
     super.key,
     this.boxSize = 260.0,
-    this.borderColor = const Color(0xFF2196F3),
-    this.borderLength = 32.0,
-    this.borderWidth = 4.0,
+    this.borderColor = FlColors.cameraHighlight,
+    this.borderLength = 28.0,
+    this.borderWidth = 3.0,
   });
 
   final double boxSize;
@@ -19,14 +23,18 @@ class ScannerOverlayWidget extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
-        final double scanSize = boxSize.clamp(150.0, width * 0.85);
+        final double scanSize = [
+          boxSize,
+          constraints.maxHeight * 0.8,
+          width * 0.85,
+        ].reduce(math.min).clamp(80.0, double.infinity);
 
         return Stack(
           children: [
             // Darkened background with square cutout
             ColorFiltered(
               colorFilter: ColorFilter.mode(
-                Colors.black.withValues(alpha: 0.55),
+                Colors.black.withValues(alpha: 0.35),
                 BlendMode.srcOut,
               ),
               child: Stack(
@@ -44,7 +52,7 @@ class ScannerOverlayWidget extends StatelessWidget {
                       height: scanSize,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                     ),
                   ),
@@ -62,7 +70,7 @@ class ScannerOverlayWidget extends StatelessWidget {
                     borderColor: borderColor,
                     borderLength: borderLength,
                     borderWidth: borderWidth,
-                    borderRadius: 16.0,
+                    borderRadius: 6.0,
                   ),
                 ),
               ),

@@ -11,8 +11,11 @@ class ResponsiveLayout extends StatelessWidget {
     required this.desktopBody,
   });
 
-  /// Điểm ngắt màn hình (breakpoint) giữa Mobile và Desktop
-  static const double desktopBreakpoint = 800.0;
+  /// Điểm ngắt màn hình (breakpoint) giữa Mobile và Desktop.
+  ///
+  /// Dưới 1024px (điện thoại, tablet dọc) dùng bố cục mobile với thanh điều
+  /// hướng dưới; từ 1024px trở lên dùng sidebar + bố cục web của Figma.
+  static const double desktopBreakpoint = 1024.0;
 
   /// Tiện ích kiểm tra xem màn hình hiện tại có thuộc kích thước Desktop hay không
   static bool isDesktop(BuildContext context) =>
@@ -20,14 +23,9 @@ class ResponsiveLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < desktopBreakpoint) {
-          return mobileBody;
-        } else {
-          return desktopBody;
-        }
-      },
-    );
+    // Dựa trên kích thước màn hình (không phải ràng buộc của widget cha) để
+    // khớp với khung FieldlineShell: sidebar chiếm chỗ nhưng nội dung vẫn
+    // phải dùng bố cục desktop.
+    return isDesktop(context) ? desktopBody : mobileBody;
   }
 }

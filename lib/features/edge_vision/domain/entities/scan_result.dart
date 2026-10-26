@@ -1,8 +1,4 @@
-enum ScanCodeType {
-  qrCode,
-  barCode,
-  unknown,
-}
+enum ScanCodeType { qrCode, barCode, unknown }
 
 class ScanResult {
   final String rawValue;

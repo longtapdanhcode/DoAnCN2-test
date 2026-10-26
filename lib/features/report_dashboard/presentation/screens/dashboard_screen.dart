@@ -1,86 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:printing/printing.dart';
 
+import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
-import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
-import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
+import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
 
-/// Hàm dùng chung để kích hoạt đồng bộ dữ liệu ngoại tuyến lên Supabase Cloud
-Future<void> _triggerSync(BuildContext context, WidgetRef ref) async {
-  final syncState = ref.read(syncControllerProvider);
-  if (syncState.isLoading) return;
+import '../../domain/audit_stats.dart';
+import '../controllers/audit_stats_provider.dart';
 
-  try {
-    final count = await ref.read(syncControllerProvider.notifier).syncAll();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đã đồng bộ thành công $count bản ghi lên Supabase!'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi khi đồng bộ lên Supabase: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-}
-
-/// Hàm dùng chung để xuất báo cáo PDF và mở hộp thoại chia sẻ hệ thống
-Future<void> _exportPdfReport(BuildContext context, WidgetRef ref) async {
-  try {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            ),
-            Gap(12),
-            Text('Đang tạo báo cáo PDF...'),
-          ],
-        ),
-        duration: Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    final repository = ref.read(auditRepositoryProvider);
-    final bytes = await repository.exportPdfReport();
-
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: 'bao_cao_kiem_ke.pdf',
-    );
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi khi xuất PDF: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-}
-
-/// Màn hình Dashboard chính tích hợp Responsive cho Mobile & Desktop
+/// Màn hình Tổng quan hiện trường (Figma 01 / M01).
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -93,595 +26,831 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-/// Giao diện Dashboard cho thiết bị di động (Mobile)
-class MobileDashboard extends ConsumerWidget {
-  const MobileDashboard({super.key});
+/// Mã phiếu hiển thị cho một bản ghi Isar.
+String auditCode(AuditRecordModel r) =>
+    'KK-${(r.timestamp ?? DateTime.now()).year}-${r.id.toString().padLeft(3, '0')}';
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncControllerProvider);
-    final isSyncing = syncState.isLoading;
+/// Tên hiển thị của bản ghi: tên tài sản, rồi nhãn AI, cuối cùng là mã quét.
+String auditTitle(AuditRecordModel r) =>
+    r.assetName ?? r.aiDetectedLabel ?? r.scanCode ?? 'Không có mã';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Field Inventory & Edge AI'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Xuất Báo cáo PDF',
-            onPressed: () => _exportPdfReport(context, ref),
-          ),
-          if (isSyncing)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.0),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.cloud_upload_outlined),
-              tooltip: 'Đồng bộ Supabase',
-              onPressed: () => _triggerSync(context, ref),
-            ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.inventory_2_outlined,
-                size: 80,
-                color: Colors.blueAccent,
-              ),
-              const Gap(16),
-              const Text(
-                'Hệ Thống Kiểm Kê Hiện Trường',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const Gap(8),
-              const Text(
-                'Tích hợp Edge AI & Quét mã barcode/QR siêu tốc offline.',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const Gap(24),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => context.push('/scanner'),
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('Mở Máy Quét Mã'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _exportPdfReport(context, ref),
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: const Text('Xuất Báo cáo PDF'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/scanner'),
-        icon: const Icon(Icons.qr_code_scanner),
-        label: const Text('Quét mã'),
-      ),
-    );
-  }
+/// Mở lại bản nháp để ký xác nhận và hoàn tất (cập nhật chính phiếu đó).
+void resumeDraft(BuildContext context, AuditRecordModel draft) {
+  context.push('/audit-form', extra: {'draftId': draft.id});
 }
 
-/// Giao diện Dashboard cho màn hình lớn Desktop/Web
-class DesktopDashboard extends ConsumerStatefulWidget {
+/// Giao diện Tổng quan cho desktop / web.
+class DesktopDashboard extends ConsumerWidget {
   const DesktopDashboard({super.key});
 
   @override
-  ConsumerState<DesktopDashboard> createState() => _DesktopDashboardState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending = ref.watch(pendingSyncCountProvider);
+    // Bản nháp luôn hiện đầu danh sách để không bị trôi mất; còn lại là phiếu chính thức.
+    final records = [
+      ...ref.watch(draftAuditRecordsProvider),
+      ...ref.watch(finalAuditRecordsProvider).take(3),
+    ];
+    final stats = ref.watch(auditStatsProvider);
+    final percent = (stats.progress * 100)
+        .toStringAsFixed(1)
+        .replaceAll('.', ',');
 
-class _DesktopDashboardState extends ConsumerState<DesktopDashboard> {
-  int _selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final syncState = ref.watch(syncControllerProvider);
-    final isSyncing = syncState.isLoading;
-
-    return Scaffold(
-      body: Row(
-        children: [
-          // Bên trái: Sidebar Menu (NavigationRail cố định ~250px)
-          Container(
-            width: 250,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border(
-                right: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header Sidebar: Logo & Tên ứng dụng
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.inventory_2_outlined,
-                          color: theme.colorScheme.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const Gap(12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Field Inventory',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Edge AI Desktop',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-
-                // Danh sách Navigation Items
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    children: [
-                      _SidebarItem(
-                        icon: Icons.dashboard_rounded,
-                        label: 'Bảng điều khiển',
-                        isSelected: _selectedIndex == 0,
-                        onTap: () => setState(() => _selectedIndex = 0),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: 'Máy quét mã',
-                        isSelected: _selectedIndex == 1,
-                        onTap: () => context.push('/scanner'),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.cloud_sync_rounded,
-                        label: isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ Supabase',
-                        isSelected: _selectedIndex == 2,
-                        isLoading: isSyncing,
-                        onTap: isSyncing
-                            ? () {}
-                            : () {
-                                setState(() => _selectedIndex = 2);
-                                _triggerSync(context, ref);
-                              },
-                      ),
-                      _SidebarItem(
-                        icon: Icons.settings_rounded,
-                        label: 'Cài đặt hệ thống',
-                        isSelected: _selectedIndex == 3,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cài đặt hệ thống'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Footer Sidebar: Nút xuất báo cáo nhanh
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: OutlinedButton.icon(
-                    onPressed: () => _exportPdfReport(context, ref),
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: const Text('Xuất Báo cáo PDF'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Bên phải: Nội dung chính
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top App Bar của Desktop
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Field Inventory & Edge AI',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const Gap(16),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.picture_as_pdf_outlined),
-                            tooltip: 'Xuất Báo cáo PDF',
-                            onPressed: () => _exportPdfReport(context, ref),
-                          ),
-                          const Gap(8),
-                          if (isSyncing)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12.0),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            )
-                          else
-                            IconButton(
-                              icon: const Icon(Icons.cloud_upload_outlined),
-                              tooltip: 'Đồng bộ Supabase',
-                              onPressed: () => _triggerSync(context, ref),
-                            ),
-                          const Gap(8),
-                          FilledButton.icon(
-                            onPressed: () => context.push('/scanner'),
-                            icon: const Icon(Icons.qr_code_scanner),
-                            label: const Text('Quét mã kiểm kê'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Main body: Lưới thẻ thống kê & tính năng (GridView)
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(28.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Chỉ số hoạt động',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Gap(16),
-
-                        // GridView thẻ thống kê
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;
-                            return GridView.count(
-                              crossAxisCount: crossAxisCount,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 2.2,
-                              children: [
-                                _StatCard(
-                                  title: 'Kiểm kê ngoại tuyến',
-                                  subtitle: 'Cơ sở dữ liệu Isar Plus',
-                                  icon: Icons.offline_bolt_rounded,
-                                  color: Colors.green,
-                                ),
-                                _StatCard(
-                                  title: 'Trí tuệ nhân tạo (AI)',
-                                  subtitle: 'TFLite Edge Vision Model',
-                                  icon: Icons.psychology_rounded,
-                                  color: Colors.purple,
-                                ),
-                                _StatCard(
-                                  title: 'Đám mây Supabase',
-                                  subtitle: 'Cloud Sync & Auth',
-                                  icon: Icons.cloud_done_rounded,
-                                  color: Colors.blue,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const Gap(28),
-
-                        Text(
-                          'Tác vụ nhanh',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Gap(16),
-
-                        // Thẻ tác vụ nhanh
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.camera_alt_outlined,
-                                        size: 32,
-                                        color: Colors.blueAccent,
-                                      ),
-                                      const Gap(12),
-                                      const Text(
-                                        'Quét mã thiết bị & QR',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const Gap(4),
-                                      const Text(
-                                        'Sử dụng camera hoặc barcode scanner để ghi nhận tài sản hiện trường.',
-                                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                                      ),
-                                      const Gap(16),
-                                      ElevatedButton.icon(
-                                        onPressed: () => context.push('/scanner'),
-                                        icon: const Icon(Icons.qr_code_scanner),
-                                        label: const Text('Mở máy quét'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Gap(16),
-                            Expanded(
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.summarize_outlined,
-                                        size: 32,
-                                        color: Colors.orangeAccent,
-                                      ),
-                                      const Gap(12),
-                                      const Text(
-                                        'Báo cáo kiểm kê PDF',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const Gap(4),
-                                      const Text(
-                                        'Tạo tài liệu PDF chính thức với đầy đủ chữ ký và bảng chi tiết.',
-                                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                                      ),
-                                      const Gap(16),
-                                      OutlinedButton.icon(
-                                        onPressed: () => _exportPdfReport(context, ref),
-                                        icon: const Icon(Icons.description_outlined),
-                                        label: const Text('Tạo tệp PDF'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SidebarItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  const _SidebarItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    this.isLoading = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          leading: isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(
-                  icon,
-                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                ),
-          title: Text(
-            label,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-            ),
-          ),
-          trailing: isLoading
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : null,
-          selected: isSelected,
-          selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          onTap: onTap,
+    return DesktopPage(
+      heading: DesktopPageHeading(
+        title: 'Tổng quan hiện trường',
+        subtitle: 'Theo dõi tài sản, tiến độ kiểm kê và các vấn đề cần xử lý hôm nay.',
+        action: FilledButton.icon(
+          onPressed: () => context.go('/scanner'),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Tạo phiếu kiểm kê'),
         ),
       ),
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cards = [
+              _StatCard(
+                label: 'Tổng tài sản',
+                value: stats.totalAssets,
+                caption: '${stats.areas.length} khu vực trong danh mục',
+                icon: Icons.inventory_2_outlined,
+                tone: FlTone.success,
+                onTap: () => context.go('/assets'),
+              ),
+              _StatCard(
+                label: 'Đã kiểm kê',
+                value: stats.auditedAssets,
+                caption:
+                    '$percent% danh mục ${stats.periodLabel.toLowerCase()}',
+                icon: Icons.check_rounded,
+                tone: FlTone.success,
+              ),
+              _StatCard(
+                label: 'Cần kiểm tra',
+                value: stats.needsCheck,
+                caption: stats.damaged == 0
+                    ? 'Không có tài sản hư hỏng'
+                    : '${stats.damaged} tài sản hư hỏng',
+                icon: Icons.center_focus_strong_outlined,
+                tone: FlTone.warning,
+              ),
+              _StatCard(
+                label: 'Chờ đồng bộ',
+                value: pending,
+                caption: 'Đã lưu an toàn trên máy',
+                icon: Icons.sync_rounded,
+                tone: FlTone.info,
+                onTap: () => context.go('/sync'),
+              ),
+            ];
+            final perRow = constraints.maxWidth >= 900 ? 4 : 2;
+            return FlGrid(columns: perRow, spacing: 16, children: cards);
+          },
+        ),
+        const Gap(16),
+        FlSplitRow(
+          main: _AreaProgressCard(stats: stats),
+          side: const _EdgeAiCard(),
+        ),
+        const Gap(16),
+        FlSplitRow(
+          main: _RecentAuditsCard(records: records),
+          side: _AttentionCard(stats: stats),
+        ),
+      ],
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-
   const _StatCard({
-    required this.title,
-    required this.subtitle,
+    required this.label,
+    required this.value,
+    required this.caption,
     required this.icon,
-    required this.color,
+    required this.tone,
+    this.onTap,
   });
+
+  final String label;
+  final int value;
+  final String caption;
+  final IconData icon;
+  final FlTone tone;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+    return FlCard(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(22, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: FlColors.muted,
+                      ),
+                    ),
+                    const Gap(8),
+                    Text(
+                      flNumber(value),
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: FlColors.ink,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(icon, color: color, size: 24),
+              IconTile(icon: icon, tone: tone, size: 40),
+            ],
+          ),
+          const Gap(18),
+          Text(
+            caption,
+            style: TextStyle(
+              fontSize: 12,
+              color: tone == FlTone.warning
+                  ? FlColors.warningStrong
+                  : tone.foreground,
             ),
-            const Gap(14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AreaProgressCard extends StatelessWidget {
+  const _AreaProgressCard({required this.stats});
+
+  final AuditStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return FlCard(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CardHeader(
+            title: 'Tiến độ kiểm kê theo khu vực',
+            subtitle: 'Kỳ kiểm kê ${stats.periodLabel.toLowerCase()}',
+            trailing: stats.totalAssets > 0 && stats.notAudited == 0
+                ? const StatusPill(label: 'Hoàn tất')
+                : const StatusPill(label: 'Đang thực hiện', tone: FlTone.info),
+          ),
+          const Gap(16),
+          if (stats.areas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Chưa có tài sản trong danh mục. Đồng bộ danh mục ở màn Tài sản.',
+                style: TextStyle(fontSize: 13, color: FlColors.muted),
+              ),
+            ),
+          for (final area in stats.areas)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  SizedBox(
+                    width: 150,
+                    child: Text(
+                      area.name,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
-                  const Gap(2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Expanded(
+                    child: FlProgressBar(
+                      value: area.progress,
+                      color: area.progress < 0.5
+                          ? const Color(0xFFA9D3CC)
+                          : FlColors.primary,
+                    ),
+                  ),
+                  const Gap(20),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      '${area.done} / ${area.planned}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: FlColors.muted,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      '${(area.progress * 100).round()}%',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+        ],
       ),
+    );
+  }
+}
+
+class _EdgeAiCard extends StatelessWidget {
+  const _EdgeAiCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return FlCard(
+      padding: const EdgeInsets.all(24),
+      // spaceBetween đẩy nút xuống đáy khi thẻ cao bằng cột bên cạnh,
+      // và vẫn hợp lệ khi thẻ xếp chồng trong vùng cuộn.
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  IconTile(icon: Icons.center_focus_strong_outlined, size: 44),
+                  Spacer(),
+                  StatusPill(label: 'ON-DEVICE'),
+                ],
+              ),
+              Gap(18),
+              Text(
+                'Kiểm kê nhanh với Edge AI',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              Gap(10),
+              Text(
+                'Quét mã hoặc nhận diện thiết bị ngay trên máy, kể cả khi không có mạng.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: FlColors.muted,
+                  height: 1.5,
+                ),
+              ),
+              Gap(20),
+            ],
+          ),
+          FilledButton.icon(
+            onPressed: () => context.go('/scanner'),
+            icon: const Icon(Icons.center_focus_strong_outlined, size: 18),
+            label: const Text('Bắt đầu quét thiết bị'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentAuditsCard extends StatelessWidget {
+  const _RecentAuditsCard({required this.records});
+
+  final List<AuditRecordModel> records;
+
+  @override
+  Widget build(BuildContext context) {
+    return FlCard(
+      padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: CardHeader(
+              title: 'Phiếu kiểm kê gần đây',
+              trailing: TextButton(
+                onPressed: () => context.go('/reports'),
+                child: const Text('Xem tất cả →'),
+              ),
+            ),
+          ),
+          const Gap(12),
+          Container(
+            color: FlColors.surfaceAlt,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: const Row(
+              children: [
+                Expanded(flex: 3, child: SectionLabel('Mã phiếu')),
+                Expanded(flex: 4, child: SectionLabel('Tài sản')),
+                Expanded(flex: 2, child: SectionLabel('Số lượng')),
+                Expanded(flex: 3, child: SectionLabel('Trạng thái')),
+              ],
+            ),
+          ),
+          if (records.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              child: Text(
+                'Chưa có phiếu kiểm kê nào trên máy. Quét thiết bị để tạo phiếu đầu tiên.',
+                style: TextStyle(fontSize: 13, color: FlColors.muted),
+              ),
+            ),
+          for (final (i, r) in records.indexed)
+            InkWell(
+              onTap: r.isDraft ? () => resumeDraft(context, r) : null,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  border: i == records.length - 1
+                      ? null
+                      : const Border(
+                          bottom: BorderSide(color: FlColors.border),
+                        ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        auditCode(r),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: FlColors.primary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        auditTitle(r),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${r.quantity} thiết bị',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: FlColors.muted,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: StatusPill(
+                          label: r.isDraft
+                              ? 'Bản nháp • chưa ký'
+                              : (r.isSynced ? 'Đã đồng bộ' : 'Chờ đồng bộ'),
+                          tone: r.isDraft
+                              ? FlTone.neutral
+                              : (r.isSynced ? FlTone.success : FlTone.warning),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttentionCard extends StatelessWidget {
+  const _AttentionCard({required this.stats});
+
+  final AuditStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return FlCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CardHeader(title: 'Cần chú ý'),
+          const Gap(24),
+          _AttentionRow(
+            count: stats.damaged,
+            title: 'Thiết bị hư hỏng',
+            subtitle: 'Ưu tiên kiểm tra trong hôm nay',
+            tone: FlTone.danger,
+            onTap: () => context.go('/assets'),
+          ),
+          const Gap(24),
+          _AttentionRow(
+            count: stats.discrepancies,
+            title: 'Sai lệch số lượng',
+            subtitle: 'Đối chiếu với danh mục tài sản',
+            tone: FlTone.warning,
+            onTap: () => context.go('/reports'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttentionRow extends StatelessWidget {
+  const _AttentionRow({
+    required this.count,
+    required this.title,
+    required this.subtitle,
+    required this.tone,
+    required this.onTap,
+  });
+
+  final int count;
+  final String title;
+  final String subtitle;
+  final FlTone tone;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(FlRadius.control),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tone.background,
+              borderRadius: BorderRadius.circular(FlRadius.control),
+            ),
+            child: Text(
+              count.toString().padLeft(2, '0'),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: tone == FlTone.warning
+                    ? const Color(0xFF9A6B23)
+                    : tone.foreground,
+              ),
+            ),
+          ),
+          const Gap(16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 13)),
+                const Gap(4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 11, color: FlColors.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Giao diện Tổng quan cho mobile (Figma M01).
+class MobileDashboard extends ConsumerWidget {
+  const MobileDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final drafts = ref.watch(draftAuditRecordsProvider);
+    final records = ref.watch(finalAuditRecordsProvider);
+    final pending = ref.watch(pendingSyncCountProvider);
+    final now = DateTime.now();
+    final stats = ref.watch(auditStatsProvider);
+    final today = stats.auditsToday;
+    const months = [
+      'THÁNG 1', 'THÁNG 2', 'THÁNG 3', 'THÁNG 4', 'THÁNG 5', 'THÁNG 6', //
+      'THÁNG 7', 'THÁNG 8', 'THÁNG 9', 'THÁNG 10', 'THÁNG 11', 'THÁNG 12',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Header tối
+        AnnotatedRegion<SystemUiOverlayStyle>(
+          // Header tối: chữ và biểu tượng thanh trạng thái màu sáng.
+          value: SystemUiOverlayStyle.light,
+          child: Container(
+            color: FlColors.sidebar,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 22, 24),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FIELDLINE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Gap(8),
+                          Text(
+                            'Nhà máy Bình An  ·  Ca sáng',
+                            style: TextStyle(
+                              color: FlColors.sidebarText,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: FlColors.logoTile,
+                      child: Text(
+                        'HA',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            children: [
+              const Text(
+                'Tổng quan',
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+              ),
+              const Gap(4),
+              Text(
+                '${now.day} ${months[now.month - 1]}, ${now.year}',
+                style: const TextStyle(fontSize: 12, color: FlColors.muted),
+              ),
+              const Gap(16),
+              FlCard(
+                color: FlColors.primarySoft,
+                borderColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                onTap: () => context.go('/sync'),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 12,
+                      backgroundColor: FlColors.primary,
+                      child: Icon(Icons.check, size: 15, color: Colors.white),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Sẵn sàng kiểm kê',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Gap(2),
+                          Text(
+                            pending == 0
+                                ? 'Dữ liệu đã lưu trên thiết bị'
+                                : '$pending phiếu chờ đồng bộ • lưu trên thiết bị',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: FlColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Gap(16),
+              FlGrid(
+                columns: 2,
+                spacing: 8,
+                children: [
+                  _MobileStat(
+                    label: 'Tài sản',
+                    value: stats.totalAssets,
+                    tone: FlTone.success,
+                  ),
+                  _MobileStat(
+                    label: 'Đã kiểm',
+                    value: stats.auditedAssets,
+                    tone: FlTone.success,
+                  ),
+                  _MobileStat(
+                    label: 'Cần xử lý',
+                    value: stats.needsCheck,
+                    tone: FlTone.warning,
+                  ),
+                  _MobileStat(
+                    label: 'Phiếu hôm nay',
+                    value: today,
+                    tone: FlTone.info,
+                    pad: true,
+                  ),
+                ],
+              ),
+              const Gap(16),
+              FlCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Bắt đầu tại hiện trường',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Gap(6),
+                    const Text(
+                      'Quét mã QR hoặc nhận diện thiết bị bằng AI',
+                      style: TextStyle(fontSize: 12, color: FlColors.muted),
+                    ),
+                    const Gap(14),
+                    MobilePrimaryButton(
+                      label: 'Quét thiết bị',
+                      onPressed: () => context.go('/scanner'),
+                    ),
+                  ],
+                ),
+              ),
+              const Gap(24),
+              if (drafts.isNotEmpty) ...[
+                const SectionLabel('Bản nháp chờ ký'),
+                const Gap(10),
+                for (final r in drafts) ...[
+                  _MobileRecentAudit(record: r),
+                  const Gap(8),
+                ],
+                const Gap(16),
+              ],
+              const SectionLabel('Hoạt động gần đây'),
+              const Gap(10),
+              if (records.isEmpty)
+                const FlCard(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Chưa có phiếu nào. Phiếu bạn lưu sẽ hiện ở đây.',
+                    style: TextStyle(fontSize: 13, color: FlColors.muted),
+                  ),
+                ),
+              for (final r in records.take(3)) ...[
+                _MobileRecentAudit(record: r),
+                const Gap(8),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MobileStat extends StatelessWidget {
+  const _MobileStat({
+    required this.label,
+    required this.value,
+    required this.tone,
+    this.pad = false,
+  });
+
+  final String label;
+  final int value;
+  final FlTone tone;
+  final bool pad;
+
+  @override
+  Widget build(BuildContext context) {
+    return FlCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: FlColors.muted),
+          ),
+          const Gap(2),
+          Text(
+            pad ? value.toString().padLeft(2, '0') : flNumber(value),
+            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w700),
+          ),
+          const Gap(4),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: tone.background,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileRecentAudit extends StatelessWidget {
+  const _MobileRecentAudit({required this.record});
+
+  final AuditRecordModel record;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = record.timestamp ?? DateTime.now();
+    final card = FlCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 21,
+            backgroundColor: FlColors.primarySoft,
+            child: Text(
+              'KK',
+              style: TextStyle(
+                color: FlColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${auditCode(record)}  ·  ${auditTitle(record)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Gap(4),
+                Text(
+                  record.isDraft
+                      ? '${record.quantity} thiết bị  ·  Bản nháp, chạm để ký'
+                      : '${record.quantity} thiết bị  ·  ${record.isSynced ? 'Đã đồng bộ' : 'Lưu ngoại tuyến'}',
+                  style: const TextStyle(fontSize: 12, color: FlColors.muted),
+                ),
+                const Gap(4),
+                Text(
+                  'Cập nhật ${flTime(t)}',
+                  style: const TextStyle(fontSize: 11, color: FlColors.primary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!record.isDraft) return card;
+    return InkWell(
+      borderRadius: BorderRadius.circular(FlRadius.card),
+      onTap: () => resumeDraft(context, record),
+      child: card,
     );
   }
 }

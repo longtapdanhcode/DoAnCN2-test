@@ -5,12 +5,13 @@ import '../../domain/repositories/scanner_repository.dart';
 
 class ScannerRepositoryImpl implements ScannerRepository {
   ScannerRepositoryImpl({MobileScannerController? controller})
-      : _controller = controller ??
-            MobileScannerController(
-              detectionSpeed: DetectionSpeed.noDuplicates,
-              autoStart: false,
-              returnImage: true,
-            );
+    : _controller =
+          controller ??
+          MobileScannerController(
+            detectionSpeed: DetectionSpeed.noDuplicates,
+            autoStart: false,
+            returnImage: true,
+          );
 
   final MobileScannerController _controller;
 

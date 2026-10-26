@@ -1,15 +1,63 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signature/signature.dart';
 
-/// Màn hình vẽ chữ ký số & ghi chú chú thích ảnh bằng Custom Canvas.
+import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
+import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
+import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+
+/// Thông tin phiếu được truyền từ màn lập phiếu sang màn ký.
+class AuditSummary {
+  const AuditSummary({
+    required this.scanCode,
+    required this.label,
+    required this.name,
+    required this.area,
+    this.location = '',
+    required this.quantity,
+    required this.condition,
+    required this.conditionTone,
+    required this.createdAt,
+  });
+
+  final String scanCode;
+  final String label;
+  final String name;
+  final String area;
+  final String location;
+  final int quantity;
+  final String condition;
+  final FlTone conditionTone;
+  final DateTime createdAt;
+
+  String get displayName => name.isNotEmpty ? name : label;
+}
+
+/// Kết quả trả về từ màn ký: ảnh chữ ký PNG và người ký.
+class SignatureResult {
+  const SignatureResult({
+    required this.bytes,
+    required this.signerName,
+    required this.signerRole,
+  });
+
+  final Uint8List bytes;
+  final String signerName;
+  final String signerRole;
+}
+
+/// Màn hình Ký xác nhận kiểm kê (Figma 05 / M04).
 ///
-/// Cho phép người dùng ký xác nhận kiểm kê hoặc khoanh vùng chú thích lỗi thiết bị,
-/// sau đó xuất ra dữ liệu ảnh PNG dạng byte array [Uint8List] để đính kèm vào bản ghi.
+/// Cho phép người dùng ký xác nhận kiểm kê, sau đó xuất ra dữ liệu ảnh PNG
+/// dạng byte array kèm họ tên, vai trò người ký ([SignatureResult]) trả về màn
+/// hình lập phiếu để lưu cùng bản ghi.
 class SignatureScreen extends StatefulWidget {
-  const SignatureScreen({super.key});
+  const SignatureScreen({super.key, this.summary});
+
+  final AuditSummary? summary;
 
   @override
   State<SignatureScreen> createState() => _SignatureScreenState();
@@ -17,24 +65,35 @@ class SignatureScreen extends StatefulWidget {
 
 class _SignatureScreenState extends State<SignatureScreen> {
   late final SignatureController _controller;
+  final _nameController = TextEditingController(text: 'Hoàng An');
+  final _roleController = TextEditingController(text: 'Kiểm kê viên');
   bool _isExporting = false;
+  bool _confirmed = true;
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo controller với màu bút đen, nét vẽ 3, màu nền xám nhạt
     _controller = SignatureController(
-      penStrokeWidth: 3,
-      penColor: Colors.black,
+      penStrokeWidth: 2.5,
+      penColor: FlColors.ink,
       exportBackgroundColor: Colors.white,
-    );
+    )..addListener(_onStroke);
   }
 
   @override
   void dispose() {
     // Đảm bảo dispose controller để tránh rò rỉ bộ nhớ
-    _controller.dispose();
+    _controller
+      ..removeListener(_onStroke)
+      ..dispose();
+    _nameController.dispose();
+    _roleController.dispose();
     super.dispose();
+  }
+
+  void _onStroke() {
+    // Cập nhật gợi ý "Chạm và kéo để ký" khi canvas đổi trạng thái trống/có nét.
+    if (mounted) setState(() {});
   }
 
   /// Xoá toàn bộ nét vẽ trên canvas
@@ -46,28 +105,31 @@ class _SignatureScreenState extends State<SignatureScreen> {
   /// Xuất ảnh chữ ký ra định dạng PNG byte array và trả về màn hình trước
   Future<void> _handleConfirm() async {
     if (_controller.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.white),
-              Gap(10),
-              Expanded(
-                child: Text('Vui lòng ký tên hoặc vẽ chú thích trước khi xác nhận!'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
+      showFlSnack(
+        context,
+        'Vui lòng ký tên trước khi hoàn tất!',
+        tone: FlTone.warning,
+      );
+      return;
+    }
+    if (_nameController.text.trim().isEmpty) {
+      showFlSnack(
+        context,
+        'Vui lòng nhập họ tên người xác nhận.',
+        tone: FlTone.warning,
+      );
+      return;
+    }
+    if (!_confirmed) {
+      showFlSnack(
+        context,
+        'Vui lòng xác nhận thông tin kiểm kê là chính xác.',
+        tone: FlTone.warning,
       );
       return;
     }
 
-    setState(() {
-      _isExporting = true;
-    });
+    setState(() => _isExporting = true);
 
     try {
       final Uint8List? bytes = await _controller.toPngBytes();
@@ -75,224 +137,426 @@ class _SignatureScreenState extends State<SignatureScreen> {
       if (!mounted) return;
 
       if (bytes != null && bytes.isNotEmpty) {
-        context.pop(bytes);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Không thể xuất dữ liệu chữ ký. Vui lòng thử lại!'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
+        context.pop(
+          SignatureResult(
+            bytes: bytes,
+            signerName: _nameController.text.trim(),
+            signerRole: _roleController.text.trim(),
           ),
+        );
+      } else {
+        showFlSnack(
+          context,
+          'Không thể xuất dữ liệu chữ ký. Vui lòng thử lại!',
+          tone: FlTone.danger,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Đã xảy ra lỗi khi lưu chữ ký: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        showFlSnack(
+          context,
+          'Đã xảy ra lỗi khi lưu chữ ký: $e',
+          tone: FlTone.danger,
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isExporting = false;
-        });
-      }
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return ResponsiveLayout.isDesktop(context)
+        ? _buildDesktop()
+        : _buildMobile();
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Ký xác nhận kiểm kê',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_outlined),
-            tooltip: 'Xóa nét vẽ',
-            onPressed: _handleClear,
-          ),
-        ],
+  Widget _canvas({required double height, required bool showLabel}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: FlColors.surface,
+        borderRadius: BorderRadius.circular(FlRadius.card),
+        border: Border.all(color: FlColors.border),
       ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-          children: [
-            // Hướng dẫn ký tên
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (showLabel)
+            const Positioned(
+              left: 20,
+              top: 18,
+              child: SectionLabel('Khu vực ký tên'),
+            ),
+          if (_controller.isEmpty)
+            const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.gesture_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const Gap(8),
+                  Icon(Icons.draw_outlined, size: 36, color: FlColors.border),
+                  Gap(12),
                   Text(
-                    'Ký tên hoặc vẽ chú thích vào khung bên dưới',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    'Chạm và kéo để ký',
+                    style: TextStyle(fontSize: 14, color: FlColors.muted),
                   ),
                 ],
               ),
             ),
+          Positioned(
+            left: 26,
+            right: 26,
+            bottom: 36,
+            child: Container(height: 1, color: FlColors.border),
+          ),
+          Positioned.fill(
+            child: Signature(
+              controller: _controller,
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Vùng Custom Canvas (Signature widget)
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6), // Nền xám nhạt
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxStyle.boxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+  Widget _buildDesktop() {
+    final s = widget.summary;
+
+    final summaryCard = FlCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CardHeader(title: 'Tóm tắt phiếu kiểm kê'),
+          const Gap(20),
+          const StatusPill(label: 'Phiếu mới', tone: FlTone.info),
+          const Gap(12),
+          KeyValueRow(label: 'Tài sản', value: _value(s?.displayName)),
+          KeyValueRow(label: 'Mã tài sản', value: _value(s?.scanCode)),
+          KeyValueRow(label: 'Khu vực', value: _value(s?.area)),
+          KeyValueRow(label: 'Vị trí cụ thể', value: _value(s?.location)),
+          KeyValueRow(
+            label: 'Số lượng thực tế',
+            value: _value(s == null ? null : '${s.quantity} thiết bị'),
+          ),
+          KeyValueRow(label: 'Người kiểm kê', value: _value('Hoàng An')),
+          KeyValueRow(
+            label: 'Thời gian',
+            value: _value(
+              s == null
+                  ? null
+                  : '${flDate(s.createdAt)} • ${flTime(s.createdAt)}',
+            ),
+          ),
+          if (s != null) ...[
+            const Gap(24),
+            StatusPill(label: s.condition, tone: s.conditionTone),
+          ],
+        ],
+      ),
+    );
+
+    final signatureCard = FlCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const CardHeader(
+            title: 'Chữ ký người xác nhận',
+            subtitle: 'Dùng chuột hoặc bút cảm ứng để ký trong khung bên dưới.',
+          ),
+          const Gap(24),
+          Row(
+            children: [
+              Expanded(
+                child: _LabeledInput(
+                  label: 'Họ và tên người xác nhận *',
+                  controller: _nameController,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Stack(
+              ),
+              const Gap(24),
+              Expanded(
+                child: _LabeledInput(
+                  label: 'Vai trò',
+                  controller: _roleController,
+                ),
+              ),
+            ],
+          ),
+          const Gap(24),
+          _canvas(height: 250, showLabel: true),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _isExporting ? null : _handleClear,
+              child: const Text('Xóa và ký lại'),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _confirmed,
+                onChanged: (v) => setState(() => _confirmed = v ?? false),
+              ),
+              const Gap(4),
+              const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Đường kẻ ký tên nét đứt ở 1/3 dưới
-                      Positioned(
-                        left: 24,
-                        right: 24,
-                        bottom: 48,
-                        child: Row(
-                          children: [
-                            Text(
-                              'X',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                            const Gap(8),
-                            Expanded(
-                              child: Container(
-                                height: 1.5,
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        'Tôi xác nhận thông tin và số lượng kiểm kê là chính xác.',
+                        style: TextStyle(fontSize: 13),
                       ),
-
-                      // Canvas chữ ký
-                      Signature(
-                        controller: _controller,
-                        backgroundColor: const Color(0xFFF3F4F6),
+                      Gap(10),
+                      Text(
+                        'Chữ ký được đính kèm trong phiếu và báo cáo PDF.',
+                        style: TextStyle(fontSize: 11, color: FlColors.muted),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
+            ],
+          ),
+        ],
+      ),
+    );
 
-            // Thanh điều khiển dưới đáy
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
+    return DesktopPage(
+      heading: const DesktopPageHeading(
+        title: 'Ký xác nhận kiểm kê',
+        subtitle: 'Rà soát phiếu và ký xác nhận trước khi hoàn tất ghi nhận.',
+      ),
+      children: [
+        const _Stepper(),
+        const Gap(24),
+        FlSplitRow(
+          main: summaryCard,
+          side: signatureCard,
+          flex: 4,
+          equalHeight: false,
+        ),
+        const Gap(24),
+        Row(
+          children: [
+            const Expanded(
+              flex: 7,
+              child: InfoBanner(
+                title: 'Phiếu được lưu trên máy ngay cả khi không có Internet.',
               ),
-              child: Row(
-                children: [
-                  // Nút "Xóa lại"
-                  Expanded(
-                    flex: 1,
-                    child: OutlinedButton.icon(
-                      onPressed: _isExporting ? null : _handleClear,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+            ),
+            const Gap(24),
+            Expanded(
+              flex: 4,
+              child: FilledButton.icon(
+                onPressed: _isExporting ? null : _handleConfirm,
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 46)),
+                icon: _isExporting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Xóa lại'),
-                    ),
-                  ),
-                  const Gap(12),
-
-                  // Nút "Xác nhận"
-                  Expanded(
-                    flex: 2,
-                    child: FilledButton.icon(
-                      onPressed: _isExporting ? null : _handleConfirm,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: _isExporting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check_rounded),
-                      label: Text(
-                        _isExporting ? 'Đang lưu...' : 'Xác nhận chữ ký',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
+                      )
+                    : const Icon(Icons.check_rounded, size: 18),
+                label: Text(
+                  _isExporting ? 'Đang lưu...' : 'Hoàn tất & lưu phiếu kiểm kê',
+                ),
               ),
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildMobile() {
+    final s = widget.summary;
+    return MobilePage(
+      title: 'Ký xác nhận',
+      showBack: true,
+      belowTitle: const MobileStepBar(
+        step: 3,
+        total: 3,
+        label: 'Xác nhận phiếu',
       ),
-    ),
-  ),
-);
+      bottomAction: MobilePrimaryButton(
+        label: 'Hoàn tất kiểm kê',
+        loading: _isExporting,
+        onPressed: _handleConfirm,
+      ),
+      children: [
+        FlCard(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionLabel(s?.scanCode ?? 'Phiếu mới'),
+                    const Gap(8),
+                    Text(
+                      s?.displayName.isNotEmpty ?? false
+                          ? s!.displayName
+                          : 'Phiếu kiểm kê',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Gap(4),
+                    const Text(
+                      'Người kiểm kê: Hoàng An',
+                      style: TextStyle(fontSize: 12, color: FlColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              if (s != null)
+                StatusPill(label: '${s.quantity} thiết bị', bold: true),
+            ],
+          ),
+        ),
+        const Gap(22),
+        const Text(
+          'Chữ ký người xác nhận',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const Gap(6),
+        const Text(
+          'Ký trực tiếp vào vùng bên dưới',
+          style: TextStyle(fontSize: 12, color: FlColors.muted),
+        ),
+        const Gap(14),
+        _canvas(height: 215, showLabel: false),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _isExporting ? null : _handleClear,
+            child: const Text(
+              'Xóa chữ ký',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+        _LabeledInput(
+          label: 'Họ tên người xác nhận',
+          controller: _nameController,
+          strongLabel: true,
+        ),
+        const Gap(14),
+        const InfoBanner(title: 'Biên bản được lưu cùng chữ ký điện tử'),
+      ],
+    );
+  }
+
+  Widget _value(String? text) => Text(
+    (text == null || text.isEmpty) ? '—' : text,
+    style: const TextStyle(fontSize: 13),
+  );
+}
+
+class _LabeledInput extends StatelessWidget {
+  const _LabeledInput({
+    required this.label,
+    required this.controller,
+    this.strongLabel = false,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final bool strongLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: strongLabel
+              ? const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)
+              : const TextStyle(fontSize: 12, color: FlColors.muted),
+        ),
+        const Gap(8),
+        TextField(controller: controller, style: const TextStyle(fontSize: 14)),
+      ],
+    );
   }
 }
 
-class BoxStyle {
-  static BoxShadow boxShadow({
-    required Color color,
-    required double blurRadius,
-    required Offset offset,
-  }) {
-    return BoxShadow(
-      color: color,
-      blurRadius: blurRadius,
-      offset: offset,
+/// Thanh 3 bước của luồng lập phiếu trên desktop.
+class _Stepper extends StatelessWidget {
+  const _Stepper();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget step(String label, {required bool done, String? number}) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: done ? FlColors.primarySoft : FlColors.primary,
+          child: done
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: 15,
+                  color: FlColors.primary,
+                )
+              : Text(
+                  number!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+        ),
+        const Gap(14),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              color: done ? FlColors.muted : FlColors.ink,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    Widget segment(String label) => Expanded(
+      child: Row(
+        children: [
+          Flexible(child: step(label, done: true)),
+          const Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Divider(),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          segment('Thông tin tài sản'),
+          segment('Kiểm kê thực tế'),
+          Expanded(child: step('Ký xác nhận', done: false, number: '3')),
+        ],
+      ),
     );
   }
 }
