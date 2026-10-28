@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
@@ -5,7 +7,10 @@ import 'package:printing/printing.dart';
 import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
+
 import 'package:field_inventory_edge_ai/core/utils/pdf_report_generator.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/evidence_photo_store.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/report_dashboard/domain/audit_stats.dart';
 import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/controllers/audit_stats_provider.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
@@ -62,15 +67,27 @@ Future<void> triggerSync(BuildContext context, WidgetRef ref) async {
   }
 }
 
+/// Đọc các ảnh minh chứng của [records] từ máy để đưa vào PDF.
+Future<Map<String, Uint8List>> loadEvidencePhotos(
+  WidgetRef ref,
+  List<AuditRecordModel> records,
+) {
+  return ref.read(evidencePhotoStoreProvider).readAll([
+    for (final r in records) ...?r.photoFiles,
+  ]);
+}
+
 /// Xuất báo cáo PDF của kỳ đang chọn và mở hộp thoại chia sẻ hệ thống.
 Future<void> exportPdfReport(BuildContext context, WidgetRef ref) async {
   try {
     showFlSnack(context, 'Đang tạo báo cáo PDF...');
 
     final period = ref.read(reportPeriodProvider);
+    final records = ref.read(reportRecordsProvider);
     final bytes = await PdfReportGenerator.generateAuditReport(
-      ref.read(reportRecordsProvider),
+      records,
       periodLabel: AuditStats.labelOf(period),
+      photoBytes: await loadEvidencePhotos(ref, records),
     );
 
     await Printing.sharePdf(

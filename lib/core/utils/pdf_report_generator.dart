@@ -154,6 +154,10 @@ class PdfReportGenerator {
   static Future<Uint8List> generateAuditReport(
     List<AuditRecordModel> allRecords, {
     String? periodLabel,
+
+    /// Byte ảnh minh chứng theo tên tệp (do nơi gọi đọc từ máy); ảnh thiếu
+    /// hoặc hỏng thì bỏ qua.
+    Map<String, Uint8List> photoBytes = const {},
   }) async {
     // Bản nháp (chưa ký) không đưa vào báo cáo.
     final records = allRecords.where((r) => !r.isDraft).toList();
@@ -248,6 +252,15 @@ class PdfReportGenerator {
         } catch (_) {
           signatureUnreadable = true;
         }
+      }
+      // Ảnh minh chứng hiện trường (ảnh lỗi bỏ qua, không làm hỏng báo cáo).
+      final photos = <pw.MemoryImage>[];
+      for (final name in r.photoFiles ?? const <String>[]) {
+        final bytes = photoBytes[name];
+        if (bytes == null) continue;
+        try {
+          photos.add(pw.MemoryImage(bytes));
+        } catch (_) {}
       }
       final place = [r.area, r.location].whereType<String>().join(' • ');
       final condition = AuditCondition.fromCode(r.condition);
@@ -399,6 +412,40 @@ class PdfReportGenerator {
                 ],
               ),
             ),
+            if (photos.isNotEmpty)
+              pw.Padding(
+                padding: const pw.EdgeInsets.fromLTRB(10, 0, 10, 10),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Ảnh minh chứng hiện trường (${photos.length})',
+                      style: pw.TextStyle(
+                        fontSize: 7.5,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Row(
+                      children: [
+                        for (final image in photos)
+                          pw.Container(
+                            width: 150,
+                            height: 100,
+                            margin: const pw.EdgeInsets.only(right: 8),
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                color: PdfColors.grey400,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: pw.Image(image, fit: pw.BoxFit.cover),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );

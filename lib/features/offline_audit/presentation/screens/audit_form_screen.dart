@@ -9,6 +9,7 @@ import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 import 'package:field_inventory_edge_ai/features/canvas_signature/presentation/screens/signature_screen.dart';
 
+import '../../data/evidence_photo_store.dart';
 import '../../data/models/audit_record_model.dart';
 import '../../domain/entities/audit_condition.dart';
 import '../controllers/audit_form_controller.dart';
@@ -55,12 +56,24 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
   final _locationController = TextEditingController();
   final _notesController = TextEditingController();
   late DateTime _createdAt;
+
+  /// Ảnh minh chứng: tên tệp theo thứ tự thêm, kèm byte để hiện ảnh nhỏ.
+  final List<String> _photoFiles = [];
+  final Map<String, Uint8List> _photoBytes = {};
+
+  /// Ảnh vừa chụp trong lần mở form này (xoá nếu thoát mà không lưu) và ảnh
+  /// của bản nháp bị gỡ (chỉ xoá thật sau khi lưu thành công).
+  final List<String> _addedPhotos = [];
+  final List<String> _removedPhotos = [];
+  bool _saved = false;
+  late final EvidencePhotoStore _photoStore;
   int _quantity = 1;
   AuditCondition _condition = AuditCondition.good;
 
   @override
   void initState() {
     super.initState();
+    _photoStore = ref.read(evidencePhotoStoreProvider);
     _createdAt = DateTime.now();
     _scanCodeController = TextEditingController(text: widget.initialScanCode);
     _aiLabelController = TextEditingController(
@@ -99,13 +112,22 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
         _quantity = draft.quantity < 1 ? 1 : draft.quantity;
         _condition = AuditCondition.fromCode(draft.condition) ?? _condition;
         _createdAt = draft.timestamp ?? _createdAt;
+        _photoFiles
+          ..clear()
+          ..addAll(draft.photoFiles ?? const []);
       });
+      _loadPhotoBytes();
     });
   }
 
   @override
   void dispose() {
     _draftSub?.close();
+    if (!_saved) {
+      for (final name in _addedPhotos) {
+        _photoStore.delete(name);
+      }
+    }
     _scanCodeController.dispose();
     _aiLabelController.dispose();
     _nameController.dispose();
@@ -165,8 +187,15 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       signerName: signed?.signerName,
       signerRole: signed?.signerRole,
       draftId: widget.draftId,
+      photoFiles: List.of(_photoFiles),
     );
 
+    if (isSuccess) {
+      _saved = true;
+      for (final name in _removedPhotos) {
+        _photoStore.delete(name);
+      }
+    }
     if (!mounted) return;
 
     if (isSuccess) {
@@ -334,7 +363,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             children: [
               const CardHeader(title: 'Ảnh minh chứng'),
               const Gap(16),
-              _PhotoDrop(onTap: _photoNotReady),
+              _photoStrip,
               const Gap(14),
               const Row(
                 children: [
@@ -568,27 +597,97 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             hintText: 'Bổ sung hiện trạng hoặc sai lệch…',
           ),
         ),
-        const Gap(14),
-        OutlinedButton.icon(
-          onPressed: _photoNotReady,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: FlColors.primary,
-            alignment: Alignment.centerLeft,
-            minimumSize: const Size.fromHeight(44),
-          ),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text(
-            'Thêm ảnh minh chứng',
-            style: TextStyle(fontSize: 13),
-          ),
-        ),
+        const Gap(22),
+        const _MobileTitle('Ảnh minh chứng'),
+        _photoStrip,
       ],
     );
   }
 
-  void _photoNotReady() => showFlSnack(
-    context,
-    'Đính kèm ảnh minh chứng sẽ có trong bản cập nhật tới.',
+  Future<void> _loadPhotoBytes() async {
+    final loaded = await _photoStore.readAll(_photoFiles);
+    if (!mounted) return;
+    setState(() => _photoBytes.addAll(loaded));
+  }
+
+  /// Chọn nguồn (chụp hoặc thư viện) rồi thêm ảnh vào phiếu.
+  Future<void> _addPhoto() async {
+    if (_photoFiles.length >= maxEvidencePhotos) {
+      showFlSnack(
+        context,
+        'Mỗi phiếu chỉ đính kèm tối đa $maxEvidencePhotos ảnh.',
+        tone: FlTone.warning,
+      );
+      return;
+    }
+    final source = await showModalBottomSheet<EvidencePhotoSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Chụp ảnh'),
+              onTap: () => Navigator.of(ctx).pop(EvidencePhotoSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () => Navigator.of(ctx).pop(EvidencePhotoSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    try {
+      final bytes = await ref.read(evidencePhotoPickerProvider).pick(source);
+      if (bytes == null) return; // người dùng huỷ
+      final name = await _photoStore.save(bytes);
+      if (!mounted) {
+        await _photoStore.delete(name);
+        return;
+      }
+      setState(() {
+        _photoFiles.add(name);
+        _photoBytes[name] = bytes;
+        _addedPhotos.add(name);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showFlSnack(
+        context,
+        source == EvidencePhotoSource.camera
+            ? 'Không mở được camera. Hãy kiểm tra quyền Camera hoặc chọn từ thư viện.'
+            : 'Không chọn được ảnh: $e',
+        tone: FlTone.danger,
+      );
+    }
+  }
+
+  void _removePhoto(String name) {
+    setState(() {
+      _photoFiles.remove(name);
+      _photoBytes.remove(name);
+      if (_addedPhotos.remove(name)) {
+        // Ảnh vừa chụp trong lần này: bỏ luôn tệp.
+        _photoStore.delete(name);
+      } else {
+        // Ảnh của bản nháp: chỉ xoá thật sau khi lưu thành công.
+        _removedPhotos.add(name);
+      }
+    });
+  }
+
+  Widget get _photoStrip => _EvidencePhotoStrip(
+    files: _photoFiles,
+    bytes: _photoBytes,
+    enabled: !ref.watch(auditFormControllerProvider).isSaving,
+    onAdd: _addPhoto,
+    onRemove: _removePhoto,
   );
 }
 
@@ -880,49 +979,129 @@ class _QuickAdd extends StatelessWidget {
   }
 }
 
-class _PhotoDrop extends StatelessWidget {
-  const _PhotoDrop({required this.onTap});
+/// Dải ảnh minh chứng: ảnh nhỏ kèm nút xoá, và ô thêm ảnh khi còn chỗ.
+class _EvidencePhotoStrip extends StatelessWidget {
+  const _EvidencePhotoStrip({
+    required this.files,
+    required this.bytes,
+    required this.enabled,
+    required this.onAdd,
+    required this.onRemove,
+  });
 
-  final VoidCallback onTap;
+  final List<String> files;
+  final Map<String, Uint8List> bytes;
+  final bool enabled;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onRemove;
+
+  static const double _tile = 84;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: FlColors.surfaceAlt,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(FlRadius.control),
-        side: const BorderSide(color: FlColors.border),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(FlRadius.control),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 22),
-          child: Column(
-            children: [
-              Icon(
-                Icons.center_focus_strong_outlined,
-                size: 18,
-                color: FlColors.primary,
-              ),
-              Gap(10),
-              Text(
-                'Thêm ảnh hiện trường',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: FlColors.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final name in files)
+              SizedBox(
+                width: _tile,
+                height: _tile,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(FlRadius.control),
+                        child: bytes[name] == null
+                            ? const ColoredBox(
+                                color: FlColors.surfaceAlt,
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: FlColors.muted,
+                                ),
+                              )
+                            : Image.memory(
+                                bytes[name]!,
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true,
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: Semantics(
+                        button: true,
+                        label: 'Xoá ảnh',
+                        child: InkWell(
+                          onTap: enabled ? () => onRemove(name) : null,
+                          customBorder: const CircleBorder(),
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: const BoxDecoration(
+                              color: FlColors.danger,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Gap(4),
-              Text(
-                'JPG, PNG • Tối đa 10 MB/ảnh',
-                style: TextStyle(fontSize: 11, color: FlColors.muted),
+            if (files.length < maxEvidencePhotos)
+              Material(
+                color: FlColors.surfaceAlt,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(FlRadius.control),
+                  side: const BorderSide(color: FlColors.border),
+                ),
+                child: InkWell(
+                  onTap: enabled ? onAdd : null,
+                  borderRadius: BorderRadius.circular(FlRadius.control),
+                  child: const SizedBox(
+                    width: _tile,
+                    height: _tile,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_outlined,
+                          size: 22,
+                          color: FlColors.primary,
+                        ),
+                        Gap(6),
+                        Text(
+                          'Thêm ảnh',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: FlColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ),
+          ],
         ),
-      ),
+        const Gap(8),
+        Text(
+          '${files.length}/$maxEvidencePhotos ảnh',
+          style: const TextStyle(fontSize: 11, color: FlColors.muted),
+        ),
+      ],
     );
   }
 }

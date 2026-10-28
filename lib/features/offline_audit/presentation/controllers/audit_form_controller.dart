@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
 
+import '../../data/evidence_photo_store.dart';
 import '../../data/models/audit_record_model.dart';
 import '../../data/repositories/isar_audit_repository_impl.dart';
 import '../../domain/entities/audit_condition.dart';
@@ -63,6 +64,7 @@ class AuditFormController extends _$AuditFormController {
 
     /// Khi hoàn tất một bản nháp: ghi đè chính phiếu đó thay vì tạo phiếu mới.
     int? draftId,
+    List<String>? photoFiles,
   }) async {
     state = state.copyWith(status: AuditFormStatus.saving, errorMessage: null);
 
@@ -83,6 +85,9 @@ class AuditFormController extends _$AuditFormController {
         ..signatureBytes = signatureBytes
         ..signerName = _clean(signerName)
         ..signerRole = _clean(signerRole)
+        ..photoFiles = (photoFiles == null || photoFiles.isEmpty)
+            ? null
+            : List.of(photoFiles)
         ..timestamp = DateTime.now()
         ..isSynced = false;
 
@@ -133,6 +138,11 @@ class AuditFormController extends _$AuditFormController {
       final record = records.where((r) => r.id == id).firstOrNull;
       if (record == null || !record.isDraft) return false;
       await repository.deleteRecord(id);
+      // Bản nháp bị xoá thì xoá luôn các ảnh minh chứng của nó.
+      final store = ref.read(evidencePhotoStoreProvider);
+      for (final name in record.photoFiles ?? const <String>[]) {
+        await store.delete(name);
+      }
       return true;
     } catch (e) {
       debugPrint('[AuditFormController] Không xoá được bản nháp #$id: $e');

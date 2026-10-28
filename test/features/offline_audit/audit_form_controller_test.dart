@@ -2,6 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers/evidence_fakes.dart';
+
+import 'package:field_inventory_edge_ai/features/offline_audit/data/evidence_photo_store.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/data/models/asset_model.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/domain/repositories/asset_catalog_repository.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
@@ -289,6 +293,51 @@ void main() {
       expect(await notifier.deleteDraft(99), isFalse);
       expect(await notifier.deleteDraft(1), isTrue);
       expect(repo.records.map((r) => r.id), [2]);
+    });
+
+    test('submitForm lưu danh sách ảnh minh chứng vào phiếu', () async {
+      final repo = MockAuditRepository();
+      final container = ProviderContainer(
+        overrides: [isarAuditRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(auditFormControllerProvider.notifier);
+
+      await notifier.submitForm(
+        scanCode: 'A',
+        quantity: 1,
+        photoFiles: ['x.jpg', 'y.jpg'],
+      );
+      await notifier.submitForm(scanCode: 'B', quantity: 1, photoFiles: []);
+
+      expect(repo.records[0].photoFiles, ['x.jpg', 'y.jpg']);
+      expect(repo.records[1].photoFiles, isNull);
+    });
+
+    test('deleteDraft xoá luôn ảnh minh chứng của bản nháp', () async {
+      final store = MemoryEvidencePhotoStore();
+      final name = await store.save(sampleJpeg());
+      final repo = MockAuditRepository()
+        ..records.add(
+          AuditRecordModel(1)
+            ..scanCode = 'NHAP'
+            ..photoFiles = [name],
+        );
+      final container = ProviderContainer(
+        overrides: [
+          isarAuditRepositoryProvider.overrideWithValue(repo),
+          evidencePhotoStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        await container
+            .read(auditFormControllerProvider.notifier)
+            .deleteDraft(1),
+        isTrue,
+      );
+      expect(store.files, isEmpty);
     });
   });
 }

@@ -69,9 +69,10 @@ class ReportPreviewScreen extends ConsumerWidget {
             child: PdfPreview(
               // Tạo lại khi đổi kỳ hoặc dữ liệu phiếu thay đổi.
               key: ValueKey('$label-${records.length}'),
-              build: (_) => PdfReportGenerator.generateAuditReport(
+              build: (_) async => PdfReportGenerator.generateAuditReport(
                 records,
                 periodLabel: label,
+                photoBytes: await loadEvidencePhotos(ref, records),
               ),
               useActions: false,
               canChangePageFormat: false,
