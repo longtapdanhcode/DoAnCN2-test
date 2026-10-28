@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   connectivity_plus
+  file_selector_windows
   isar_plus_flutter_libs
   permission_handler_windows
   printing
