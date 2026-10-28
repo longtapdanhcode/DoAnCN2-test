@@ -43,6 +43,9 @@ class CloudAuditRecordModel {
   /// Họ tên người ký xác nhận.
   final String? signerName;
 
+  /// URL công khai các ảnh minh chứng hiện trường trên Supabase Storage.
+  final List<String> photoUrls;
+
   /// Vai trò của người ký.
   final String? signerRole;
 
@@ -58,6 +61,7 @@ class CloudAuditRecordModel {
     this.notes,
     required this.timestamp,
     this.signatureUrl,
+    this.photoUrls = const [],
     this.signerName,
     this.signerRole,
   });
@@ -82,6 +86,10 @@ class CloudAuditRecordModel {
           json['signature_url'] as String? ?? json['signatureUrl'] as String?,
       signerName: json['signer_name'] as String?,
       signerRole: json['signer_role'] as String?,
+      photoUrls: [
+        for (final u in (json['photo_urls'] as List?) ?? const [])
+          if (u is String) u,
+      ],
     );
   }
 
@@ -101,6 +109,8 @@ class CloudAuditRecordModel {
       if (signatureUrl != null) 'signature_url': signatureUrl,
       if (signerName != null) 'signer_name': signerName,
       if (signerRole != null) 'signer_role': signerRole,
+      // Chỉ gửi khi có ảnh: phiếu không ảnh vẫn đồng bộ được trước khi bảng có cột này.
+      if (photoUrls.isNotEmpty) 'photo_urls': photoUrls,
     };
   }
 
@@ -109,6 +119,7 @@ class CloudAuditRecordModel {
     AuditRecordModel record, {
     String? id,
     String? signatureUrl,
+    List<String> photoUrls = const [],
   }) {
     return CloudAuditRecordModel(
       id: id ?? _generateUuidV4(),
@@ -124,6 +135,7 @@ class CloudAuditRecordModel {
       signatureUrl: signatureUrl,
       signerName: record.signerName,
       signerRole: record.signerRole,
+      photoUrls: photoUrls,
     );
   }
 
@@ -150,6 +162,7 @@ class CloudAuditRecordModel {
     String? signatureUrl,
     String? signerName,
     String? signerRole,
+    List<String>? photoUrls,
   }) {
     return CloudAuditRecordModel(
       id: id ?? this.id,
@@ -165,12 +178,13 @@ class CloudAuditRecordModel {
       signatureUrl: signatureUrl ?? this.signatureUrl,
       signerName: signerName ?? this.signerName,
       signerRole: signerRole ?? this.signerRole,
+      photoUrls: photoUrls ?? this.photoUrls,
     );
   }
 
   @override
   String toString() {
-    return 'CloudAuditRecordModel(id: $id, scanCode: $scanCode, aiDetectedLabel: $aiDetectedLabel, quantity: $quantity, assetName: $assetName, area: $area, location: $location, condition: $condition, notes: $notes, timestamp: $timestamp, signatureUrl: $signatureUrl, signerName: $signerName, signerRole: $signerRole)';
+    return 'CloudAuditRecordModel(id: $id, scanCode: $scanCode, aiDetectedLabel: $aiDetectedLabel, quantity: $quantity, assetName: $assetName, area: $area, location: $location, condition: $condition, notes: $notes, timestamp: $timestamp, signatureUrl: $signatureUrl, signerName: $signerName, signerRole: $signerRole, photoUrls: $photoUrls)';
   }
 
   @override
@@ -189,7 +203,16 @@ class CloudAuditRecordModel {
         other.timestamp == timestamp &&
         other.signatureUrl == signatureUrl &&
         other.signerName == signerName &&
-        other.signerRole == signerRole;
+        other.signerRole == signerRole &&
+        _listEquals(other.photoUrls, photoUrls);
+  }
+
+  static bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   @override
@@ -208,6 +231,7 @@ class CloudAuditRecordModel {
       signatureUrl,
       signerName,
       signerRole,
+      Object.hashAll(photoUrls),
     );
   }
 }

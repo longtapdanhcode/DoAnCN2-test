@@ -43,6 +43,10 @@ class MockSyncRepository implements SyncRepository {
   }
 
   @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://supabase.co/storage/v1/object/public/evidence/test.jpg';
+
+  @override
   Future<void> syncPendingRecords(List<AuditRecordModel> records) async {
     if (shouldThrow) {
       throw Exception('Lỗi kết nối mạng giả lập khi đồng bộ');

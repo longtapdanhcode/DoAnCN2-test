@@ -61,6 +61,10 @@ class InMemoryIsarAuditRepository implements AuditRepository {
 
 /// Giả lập Supabase Cloud Sync Repository để xác thực tải chữ ký và ingestion.
 class E2ESupabaseSyncRepository implements SyncRepository {
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
   final InMemoryIsarAuditRepository localRepository;
   final List<CloudAuditRecordModel> cloudStorage = [];
 

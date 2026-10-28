@@ -14,4 +14,8 @@ abstract class SyncRepository {
   ///
   /// Trả về `null` nếu quá trình tải lên thất bại hoặc mảng byte rỗng.
   Future<String?> uploadSignature(List<int> bytes);
+
+  /// Tải một ảnh minh chứng hiện trường (JPEG) lên Supabase Storage và trả về
+  /// URL công khai. Ném lỗi nếu tải thất bại để phiếu ở lại hàng chờ đồng bộ.
+  Future<String> uploadEvidencePhoto(List<int> bytes);
 }

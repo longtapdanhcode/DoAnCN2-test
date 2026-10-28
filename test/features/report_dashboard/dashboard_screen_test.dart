@@ -42,6 +42,10 @@ class MockAuditRepository implements AuditRepository {
 }
 
 class MockSyncRepository implements SyncRepository {
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
   bool syncCalled = false;
 
   @override

@@ -50,6 +50,10 @@ class AuditRecordModel {
   /// Vai trò của người ký (ví dụ: "Kiểm kê viên").
   String? signerRole;
 
+  /// Tên tệp các ảnh minh chứng hiện trường (tối đa 3), lưu bởi
+  /// `EvidencePhotoStore`. `null` hoặc rỗng nếu phiếu không có ảnh.
+  List<String>? photoFiles;
+
   /// Thời điểm tạo bản ghi.
   DateTime? timestamp;
 

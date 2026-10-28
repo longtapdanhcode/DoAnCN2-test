@@ -32,6 +32,10 @@ class _EmptyAuditRepository implements AuditRepository {
 
 class _NoopSyncRepository implements SyncRepository {
   @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
+  @override
   Future<void> syncPendingRecords(List<AuditRecordModel> records) async {}
 
   @override
