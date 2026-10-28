@@ -66,4 +66,22 @@ class AuditRecordModel {
   ///
   /// Mặc định là `false` – nghĩa là chưa đồng bộ (offline-first).
   bool isSynced = false;
+
+  /// Bản sao với [id] mới, giữ **mọi** trường dữ liệu (dùng khi gán id tự tăng
+  /// lúc lưu phiếu mới). Thêm trường mới vào lớp này thì phải thêm ở đây.
+  AuditRecordModel copyWithId(int id) => AuditRecordModel(id)
+    ..scanCode = scanCode
+    ..aiDetectedLabel = aiDetectedLabel
+    ..assetName = assetName
+    ..quantity = quantity
+    ..area = area
+    ..location = location
+    ..condition = condition
+    ..notes = notes
+    ..signatureBytes = signatureBytes
+    ..signerName = signerName
+    ..signerRole = signerRole
+    ..photoFiles = photoFiles
+    ..timestamp = timestamp
+    ..isSynced = isSynced;
 }
