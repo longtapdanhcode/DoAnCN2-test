@@ -224,9 +224,10 @@ void main() {
       );
 
       await tester.tap(find.text('Xuất báo cáo PDF'));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      expect(mockRepo.exportCalled, isTrue);
+      // Xuất theo kỳ đang chọn: báo đang tạo PDF (hộp chia sẻ không có trong test).
+      expect(find.text('Đang tạo báo cáo PDF...'), findsOneWidget);
     });
   });
 }

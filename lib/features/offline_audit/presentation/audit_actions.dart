@@ -5,7 +5,9 @@ import 'package:printing/printing.dart';
 import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
-import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
+import 'package:field_inventory_edge_ai/core/utils/pdf_report_generator.dart';
+import 'package:field_inventory_edge_ai/features/report_dashboard/domain/audit_stats.dart';
+import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/controllers/audit_stats_provider.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
 
 /// Kích hoạt đồng bộ dữ liệu ngoại tuyến lên Supabase Cloud.
@@ -60,15 +62,22 @@ Future<void> triggerSync(BuildContext context, WidgetRef ref) async {
   }
 }
 
-/// Xuất báo cáo PDF và mở hộp thoại chia sẻ hệ thống.
+/// Xuất báo cáo PDF của kỳ đang chọn và mở hộp thoại chia sẻ hệ thống.
 Future<void> exportPdfReport(BuildContext context, WidgetRef ref) async {
   try {
     showFlSnack(context, 'Đang tạo báo cáo PDF...');
 
-    final repository = ref.read(auditRepositoryProvider);
-    final bytes = await repository.exportPdfReport();
+    final period = ref.read(reportPeriodProvider);
+    final bytes = await PdfReportGenerator.generateAuditReport(
+      ref.read(reportRecordsProvider),
+      periodLabel: AuditStats.labelOf(period),
+    );
 
-    await Printing.sharePdf(bytes: bytes, filename: 'bao_cao_kiem_ke.pdf');
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename:
+          'bao_cao_kiem_ke_${period.year}_${period.month.toString().padLeft(2, '0')}.pdf',
+    );
   } catch (e) {
     if (context.mounted) {
       showFlSnack(context, 'Lỗi khi xuất PDF: $e', tone: FlTone.danger);

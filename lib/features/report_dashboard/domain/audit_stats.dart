@@ -27,7 +27,7 @@ class AreaProgress {
 
 /// Số liệu Tổng quan & Báo cáo, tính từ danh mục tài sản và phiếu kiểm kê trên máy.
 ///
-/// Kỳ báo cáo là tháng chứa [now]. Một tài sản được tính "đã kiểm kê" khi lần
+/// Kỳ báo cáo là tháng của [period] (mặc định tháng chứa [now]). Một tài sản được tính "đã kiểm kê" khi lần
 /// kiểm kê gần nhất của nó rơi vào kỳ, hoặc có phiếu trong kỳ cùng mã.
 class AuditStats {
   AuditStats._({
@@ -46,9 +46,11 @@ class AuditStats {
     required List<AssetModel> assets,
     required List<AuditRecordModel> records,
     required DateTime now,
+    DateTime? period,
   }) {
-    final periodStart = DateTime(now.year, now.month);
-    final periodEnd = DateTime(now.year, now.month + 1);
+    final base = period ?? now;
+    final periodStart = DateTime(base.year, base.month);
+    final periodEnd = DateTime(base.year, base.month + 1);
     bool inPeriod(DateTime? t) =>
         t != null && !t.isBefore(periodStart) && t.isBefore(periodEnd);
     bool isToday(DateTime? t) =>
@@ -139,4 +141,21 @@ class AuditStats {
 
   /// Nhãn kỳ, ví dụ "Tháng 10/2026".
   String get periodLabel => 'Tháng ${periodStart.month}/${periodStart.year}';
+
+  /// Các tháng có phiếu kiểm kê (mới nhất trước), luôn gồm tháng của [now].
+  static List<DateTime> availablePeriods(
+    List<AuditRecordModel> records,
+    DateTime now,
+  ) {
+    final months = <DateTime>{
+      DateTime(now.year, now.month),
+      for (final r in records)
+        if (r.timestamp != null)
+          DateTime(r.timestamp!.year, r.timestamp!.month),
+    }.toList()..sort((a, b) => b.compareTo(a));
+    return months;
+  }
+
+  /// Nhãn tháng, ví dụ "Tháng 10/2026".
+  static String labelOf(DateTime month) => 'Tháng ${month.month}/${month.year}';
 }

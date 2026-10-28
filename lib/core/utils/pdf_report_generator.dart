@@ -152,8 +152,9 @@ class PdfReportGenerator {
   /// Tạo PDF báo cáo kiểm kê: thống kê tổng quan, bảng tóm tắt các phiếu, rồi
   /// chi tiết từng phiếu kèm ảnh chữ ký người xác nhận.
   static Future<Uint8List> generateAuditReport(
-    List<AuditRecordModel> allRecords,
-  ) async {
+    List<AuditRecordModel> allRecords, {
+    String? periodLabel,
+  }) async {
     // Bản nháp (chưa ký) không đưa vào báo cáo.
     final records = allRecords.where((r) => !r.isDraft).toList();
     final pdf = pw.Document();
@@ -238,10 +239,16 @@ class PdfReportGenerator {
         );
 
     pw.Widget detailCard(AuditRecordModel r) {
-      final signature =
-          (r.signatureBytes != null && r.signatureBytes!.isNotEmpty)
-          ? pw.MemoryImage(Uint8List.fromList(r.signatureBytes!))
-          : null;
+      // Chữ ký hỏng không được làm hỏng cả báo cáo: chỉ phiếu đó báo lỗi.
+      pw.MemoryImage? signature;
+      var signatureUnreadable = false;
+      if (r.signatureBytes != null && r.signatureBytes!.isNotEmpty) {
+        try {
+          signature = pw.MemoryImage(Uint8List.fromList(r.signatureBytes!));
+        } catch (_) {
+          signatureUnreadable = true;
+        }
+      }
       final place = [r.area, r.location].whereType<String>().join(' • ');
       final condition = AuditCondition.fromCode(r.condition);
 
@@ -362,7 +369,9 @@ class PdfReportGenerator {
                                   ),
                                 )
                               : pw.Text(
-                                  'Chưa có chữ ký',
+                                  signatureUnreadable
+                                      ? 'Không đọc được chữ ký'
+                                      : 'Chưa có chữ ký',
                                   style: pw.TextStyle(
                                     fontSize: 8,
                                     color: PdfColors.grey500,
@@ -420,7 +429,9 @@ class PdfReportGenerator {
                     ),
                     pw.SizedBox(height: 4),
                     pw.Text(
-                      'Hệ thống Field Inventory Edge AI (Offline-First)',
+                      periodLabel == null
+                          ? 'Hệ thống Field Inventory Edge AI (Offline-First)'
+                          : 'Kỳ báo cáo: $periodLabel  •  Field Inventory Edge AI',
                       style: pw.TextStyle(
                         fontSize: 10,
                         color: PdfColors.grey700,

@@ -75,5 +75,29 @@ void main() {
       expect(ascii.decode(withSignature.sublist(0, 5)), '%PDF-');
       expect(withSignature.length, greaterThan(without.length));
     });
+
+    test('PDF có nhãn kỳ báo cáo khác PDF không có nhãn', () async {
+      final record = AuditRecordModel(1)
+        ..scanCode = 'TS-DC-0142'
+        ..quantity = 1
+        ..signatureBytes = [1, 2, 3]
+        ..timestamp = DateTime(2026, 10, 26);
+      final plain = await PdfReportGenerator.generateAuditReport([record]);
+      final labelled = await PdfReportGenerator.generateAuditReport([
+        record,
+      ], periodLabel: 'Tháng 10/2026');
+      expect(ascii.decode(labelled.sublist(0, 5)), '%PDF-');
+      expect(labelled.length, isNot(plain.length));
+    });
+
+    test('chữ ký hỏng không làm hỏng cả báo cáo', () async {
+      final record = AuditRecordModel(1)
+        ..scanCode = 'TS-DC-0142'
+        ..quantity = 1
+        ..signatureBytes = [1, 2, 3]
+        ..timestamp = DateTime(2026, 10, 26);
+      final bytes = await PdfReportGenerator.generateAuditReport([record]);
+      expect(ascii.decode(bytes.sublist(0, 5)), '%PDF-');
+    });
   });
 }
