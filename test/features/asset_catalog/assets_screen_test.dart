@@ -18,6 +18,9 @@ import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/scre
 
 class _EmptyAuditRepository implements AuditRepository {
   @override
+  Future<void> deleteRecord(int id) async {}
+
+  @override
   Future<void> saveRecord(AuditRecordModel record) async {}
 
   @override

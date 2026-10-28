@@ -11,6 +11,11 @@ import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositori
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_form_controller.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {
+    records.removeWhere((r) => r.id == id);
+  }
+
   final List<AuditRecordModel> records = [];
   bool shouldThrow = false;
 
@@ -265,5 +270,25 @@ void main() {
         expect(repo.records.single.isDraft, isFalse);
       },
     );
+
+    test('deleteDraft xoá bản nháp nhưng không xoá phiếu đã ký', () async {
+      final repo = MockAuditRepository()
+        ..records.addAll([
+          AuditRecordModel(1)..scanCode = 'NHAP',
+          AuditRecordModel(2)
+            ..scanCode = 'DA-KY'
+            ..signatureBytes = [1, 2, 3],
+        ]);
+      final container = ProviderContainer(
+        overrides: [isarAuditRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(auditFormControllerProvider.notifier);
+
+      expect(await notifier.deleteDraft(2), isFalse);
+      expect(await notifier.deleteDraft(99), isFalse);
+      expect(await notifier.deleteDraft(1), isTrue);
+      expect(repo.records.map((r) => r.id), [2]);
+    });
   });
 }

@@ -18,6 +18,9 @@ import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/s
 import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/screens/reports_screen.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   bool exportCalled = false;
   List<AuditRecordModel> records = [];
 
@@ -111,6 +114,37 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('Bản nháp hiện ở mục riêng và xoá được sau khi xác nhận', (
+      tester,
+    ) async {
+      mockRepo.records = [
+        AuditRecordModel(3)
+          ..scanCode = 'NHAP-01'
+          ..assetName = 'Máy bơm nháp'
+          ..quantity = 1
+          ..timestamp = DateTime.now(),
+      ];
+
+      await pumpScreen(
+        tester,
+        const DashboardScreen(),
+        screenSize: const Size(420, 2400),
+      );
+
+      expect(find.text('BẢN NHÁP CHỜ KÝ'), findsOneWidget);
+      expect(find.textContaining('Bản nháp, chạm để ký'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Xoá bản nháp'));
+      await tester.pumpAndSettle();
+      expect(find.text('Xoá bản nháp?'), findsOneWidget);
+
+      // Huỷ thì giữ nguyên bản nháp.
+      await tester.tap(find.text('Huỷ'));
+      await tester.pumpAndSettle();
+      expect(find.text('Xoá bản nháp?'), findsNothing);
+      expect(mockRepo.records, hasLength(1));
+    });
 
     testWidgets('Mobile dashboard shows pending records', (tester) async {
       mockRepo.records = [

@@ -47,6 +47,13 @@ class IsarAuditRepositoryImpl implements AuditRepository {
   }
 
   @override
+  Future<void> deleteRecord(int id) async {
+    await _isar.writeAsync((isar) {
+      isar.auditRecordModels.delete(id);
+    });
+  }
+
+  @override
   Future<List<AuditRecordModel>> getAllRecords() async {
     return _isar.auditRecordModels.where().findAll();
   }

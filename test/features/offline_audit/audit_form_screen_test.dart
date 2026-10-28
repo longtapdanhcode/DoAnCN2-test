@@ -11,6 +11,9 @@ import 'package:field_inventory_edge_ai/features/offline_audit/presentation/cont
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/screens/audit_form_screen.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   final List<AuditRecordModel> records = [];
 
   @override

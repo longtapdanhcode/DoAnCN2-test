@@ -124,6 +124,22 @@ class AuditFormController extends _$AuditFormController {
     }
   }
 
+  /// Xoá một bản nháp chưa ký. Phiếu đã ký (chính thức) không bao giờ bị xoá ở
+  /// đây. Trả về `true` nếu đã xoá.
+  Future<bool> deleteDraft(int id) async {
+    try {
+      final repository = ref.read(isarAuditRepositoryProvider);
+      final records = await repository.getAllRecords();
+      final record = records.where((r) => r.id == id).firstOrNull;
+      if (record == null || !record.isDraft) return false;
+      await repository.deleteRecord(id);
+      return true;
+    } catch (e) {
+      debugPrint('[AuditFormController] Không xoá được bản nháp #$id: $e');
+      return false;
+    }
+  }
+
   /// Chuỗi rỗng hoặc toàn khoảng trắng được lưu là `null`.
   static String? _clean(String? value) {
     final trimmed = value?.trim();
