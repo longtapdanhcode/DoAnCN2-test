@@ -37,7 +37,9 @@ class SettingsScreen extends ConsumerWidget {
 
     return WorkspacePage(
       title: 'Cài đặt',
-      subtitle: 'Tài khoản, nơi kiểm kê và cách app đồng bộ dữ liệu.',
+      subtitle: canScan
+          ? 'Tài khoản, nơi kiểm kê và cách app đồng bộ dữ liệu.'
+          : 'Tài khoản và nơi kiểm kê.',
       children: ResponsiveLayout.isDesktop(context)
           ? [FlGrid(columns: 2, spacing: 20, children: sections)]
           : [

@@ -81,7 +81,22 @@ class ReportPreviewScreen extends ConsumerWidget {
               allowPrinting: false,
               allowSharing: false,
               maxPageWidth: 700,
-              loadingWidget: const CircularProgressIndicator(),
+              loadingWidget: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Đang tạo báo cáo PDF kèm chữ ký và ảnh minh chứng…',
+                    style: TextStyle(fontSize: 13, color: FlColors.muted),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Bản web có thể mất vài chục giây khi phiếu có ảnh.',
+                    style: TextStyle(fontSize: 12, color: FlColors.muted),
+                  ),
+                ],
+              ),
               onError: (context, error) =>
                   Center(child: Text('Không dựng được bản xem trước: $error')),
             ),
