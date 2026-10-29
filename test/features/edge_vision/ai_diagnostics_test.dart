@@ -13,6 +13,7 @@ import 'package:field_inventory_edge_ai/features/edge_vision/presentation/widget
 class _FakeVision implements VisionAiRepository {
   VisionAnalysis next = const VisionAnalysis();
   int calls = 0;
+  int loadCalls = 0;
 
   @override
   VisionModelStatus get modelStatus => VisionModelStatus.loaded;
@@ -24,7 +25,7 @@ class _FakeVision implements VisionAiRepository {
   int get labelCount => 9;
 
   @override
-  Future<void> loadModel() async {}
+  Future<void> loadModel() async => loadCalls++;
 
   @override
   Future<VisionAnalysis> analyze(List<int> imageBytes) async {
@@ -153,6 +154,36 @@ void main() {
         overrides: [visionAiRepositoryProvider.overrideWithValue(vision)],
       );
       addTearDown(container.dispose);
+    });
+
+    test('mô hình nạp xong vẫn được dùng cho các khung sau', () async {
+      // Lỗi cũ: provider tự huỷ nên mô hình nạp vào một bản rồi bị đóng,
+      // khung hình đi tới bản mới chưa nạp ("Chưa nạp" trên máy thật).
+      final created = <_FakeVision>[];
+      final c = ProviderContainer(
+        overrides: [
+          visionAiRepositoryProvider.overrideWith((ref) {
+            final v = _FakeVision();
+            created.add(v);
+            return v;
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(scannerControllerProvider, (_, _) {});
+      final notifier = c.read(scannerControllerProvider.notifier);
+
+      await c.read(visionAiRepositoryProvider).loadModel();
+      for (var i = 0; i < 2; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await notifier.processCameraFrame(
+          BarcodeCapture(image: Uint8List.fromList([1])),
+        );
+      }
+
+      expect(created, hasLength(1));
+      expect(created.single.loadCalls, 1);
+      expect(created.single.calls, 2);
     });
 
     test('khung không có ảnh được đếm riêng, không gọi AI', () async {

@@ -154,6 +154,10 @@ class ScannerController extends _$ScannerController {
 
   @override
   ScannerUiState build() {
+    // Giữ một bộ AI duy nhất suốt lúc màn Quét mở. Provider này tự huỷ khi
+    // không ai theo dõi, nên chỉ `ref.read` sẽ tạo bản mới mỗi lần: mô hình
+    // nạp vào một bản rồi bị đóng ngay, còn khung hình đi tới bản chưa nạp.
+    ref.listen(visionAiRepositoryProvider, (_, _) {});
     return const ScannerUiState();
   }
 
