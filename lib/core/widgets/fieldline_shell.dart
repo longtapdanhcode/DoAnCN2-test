@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/account_sheet.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/offline_audit/presentation/controllers/audit_records_provider.dart';
+import '../../features/workspace/data/workspace_settings.dart';
 import '../../features/offline_audit/presentation/controllers/auto_sync_controller.dart';
 import '../network/connectivity_provider.dart';
 import '../theme/fieldline_theme.dart';
@@ -46,8 +47,8 @@ const _fieldItems = [
 ];
 
 const _workspaceItems = [
-  _NavItem('Địa điểm', Icons.location_on_outlined, null),
-  _NavItem('Cài đặt', Icons.settings_outlined, null),
+  _NavItem('Địa điểm', Icons.location_on_outlined, '/locations'),
+  _NavItem('Cài đặt', Icons.settings_outlined, '/settings'),
 ];
 
 const _mobileItems = [
@@ -69,6 +70,8 @@ const _pageTitles = {
   '/signature': 'Ký xác nhận kiểm kê',
   '/reports': 'Báo cáo kiểm kê',
   '/sync': 'Đồng bộ dữ liệu',
+  '/locations': 'Địa điểm',
+  '/settings': 'Cài đặt',
 };
 
 /// Khung ứng dụng Fieldline: sidebar + thanh trên cho desktop/web,
@@ -128,6 +131,7 @@ class _Sidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingSyncCountProvider);
+    final workspace = ref.watch(workspaceProvider);
 
     return Container(
       width: 232,
@@ -185,20 +189,27 @@ class _Sidebar extends ConsumerWidget {
                   color: FlColors.sidebarCard,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Không gian làm việc',
                       style: TextStyle(
                         color: FlColors.sidebarSubtle,
                         fontSize: 10,
                       ),
                     ),
-                    Gap(4),
+                    const Gap(4),
                     Text(
-                      'Nhà máy Bình An',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
+                      workspace.siteName,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    Text(
+                      workspace.shift,
+                      style: const TextStyle(
+                        color: FlColors.sidebarSubtle,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -219,7 +230,7 @@ class _Sidebar extends ConsumerWidget {
                     const Gap(20),
                     const _SidebarLabel('Không gian làm việc'),
                     for (final item in _workspaceItems)
-                      _SidebarTile(item: item, active: false),
+                      _SidebarTile(item: item, active: item.isActive(location)),
                   ],
                 ),
               ),

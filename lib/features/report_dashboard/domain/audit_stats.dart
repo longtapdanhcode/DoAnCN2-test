@@ -75,12 +75,12 @@ class AuditStats {
     }).toList();
 
     final areaNames = <String>{
-      for (final a in assets) a.area ?? _noArea,
+      for (final a in assets) a.area ?? noArea,
     }.toList()..sort();
     final areas = [
       for (final name in areaNames)
         () {
-          final inArea = assets.where((a) => (a.area ?? _noArea) == name);
+          final inArea = assets.where((a) => (a.area ?? noArea) == name);
           return AreaProgress(
             name: name,
             planned: inArea.length,
@@ -89,7 +89,7 @@ class AuditStats {
                 .where(
                   (r) =>
                       (byCode[r.scanCode?.trim().toUpperCase()]?.area ??
-                          _noArea) ==
+                          noArea) ==
                       name,
                 )
                 .length,
@@ -116,7 +116,8 @@ class AuditStats {
     );
   }
 
-  static const _noArea = 'Chưa có khu vực';
+  /// Nhóm cho tài sản chưa ghi khu vực.
+  static const noArea = 'Chưa có khu vực';
 
   /// Ngày đầu tháng của kỳ báo cáo.
   final DateTime periodStart;

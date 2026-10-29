@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/screens/asset_conflicts_screen.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/screens/auth_screens.dart';
+import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/locations_screen.dart';
+import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/settings_screen.dart';
 
 import '../../features/asset_catalog/presentation/screens/asset_editor_screen.dart';
 import '../../features/asset_catalog/presentation/screens/assets_screen.dart';
@@ -70,7 +72,14 @@ GoRouter goRouter(Ref ref) {
           GoRoute(
             path: '/assets',
             name: 'assets',
-            pageBuilder: (context, state) => _tab(state, const AssetsScreen()),
+            pageBuilder: (context, state) {
+              // Mở từ màn Địa điểm: lọc sẵn theo khu vực.
+              final area = state.uri.queryParameters['area'];
+              return _tab(
+                state,
+                AssetsScreen(key: ValueKey(area), initialArea: area),
+              );
+            },
             routes: [
               GoRoute(
                 path: 'new',
@@ -125,6 +134,18 @@ GoRouter goRouter(Ref ref) {
                 builder: (context, state) => const ReportPreviewScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/locations',
+            name: 'locations',
+            pageBuilder: (context, state) =>
+                _tab(state, const LocationsScreen()),
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            pageBuilder: (context, state) =>
+                _tab(state, const SettingsScreen()),
           ),
           GoRoute(
             path: '/sync',

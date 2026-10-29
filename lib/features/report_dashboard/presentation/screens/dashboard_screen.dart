@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/features/workspace/data/workspace_settings.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/account_sheet.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
@@ -621,11 +622,11 @@ class MobileDashboard extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(24, 20, 22, 24),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'FIELDLINE',
                             style: TextStyle(
                               color: Colors.white,
@@ -633,12 +634,16 @@ class MobileDashboard extends ConsumerWidget {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Gap(8),
-                          Text(
-                            'Nhà máy Bình An  ·  Ca sáng',
-                            style: TextStyle(
-                              color: FlColors.sidebarText,
-                              fontSize: 13,
+                          const Gap(8),
+                          // Chạm để xem các khu vực của nơi đang kiểm kê.
+                          InkWell(
+                            onTap: () => context.push('/locations'),
+                            child: Text(
+                              '${ref.watch(workspaceProvider).summary}  ›',
+                              style: const TextStyle(
+                                color: FlColors.sidebarText,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],

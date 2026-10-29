@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
@@ -110,9 +111,28 @@ Future<void> showAccountSheet(BuildContext context, WidgetRef ref) {
                   ),
                   const Gap(24),
                 ],
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: const Text('Địa điểm'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    GoRouter.of(context).push('/locations');
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.settings_outlined),
+                  title: const Text('Cài đặt'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    GoRouter.of(context).push('/settings');
+                  },
+                ),
+                const Gap(12),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final ok = await _confirmSignOut(context, ref);
+                    final ok = await confirmSignOut(context, ref);
                     if (!ok) return;
                     if (sheetContext.mounted) Navigator.pop(sheetContext);
                     await ref.read(authRepositoryProvider).signOut();
@@ -129,7 +149,8 @@ Future<void> showAccountSheet(BuildContext context, WidgetRef ref) {
   );
 }
 
-Future<bool> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+/// Hỏi lại trước khi đăng xuất (báo số phiếu chưa đồng bộ nếu có).
+Future<bool> confirmSignOut(BuildContext context, WidgetRef ref) async {
   final pending = ref.read(pendingSyncCountProvider);
   final result = await showDialog<bool>(
     context: context,

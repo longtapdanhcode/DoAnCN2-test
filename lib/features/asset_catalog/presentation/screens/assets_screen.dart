@@ -41,7 +41,10 @@ class _CatalogStats {
 
 /// Màn hình Tài sản & thiết bị (Figma 02 / M06), đọc danh mục thật trên máy.
 class AssetsScreen extends ConsumerStatefulWidget {
-  const AssetsScreen({super.key});
+  const AssetsScreen({super.key, this.initialArea});
+
+  /// Khu vực lọc sẵn khi mở (ví dụ từ màn Địa điểm).
+  final String? initialArea;
 
   @override
   ConsumerState<AssetsScreen> createState() => _AssetsScreenState();
@@ -50,7 +53,7 @@ class AssetsScreen extends ConsumerStatefulWidget {
 class _AssetsScreenState extends ConsumerState<AssetsScreen> {
   final _search = TextEditingController();
   _AssetFilter _filter = _AssetFilter.all;
-  String? _area;
+  late String? _area = widget.initialArea;
   String? _status;
   final _selected = <String>{};
 
