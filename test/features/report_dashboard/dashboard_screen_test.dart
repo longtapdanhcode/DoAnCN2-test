@@ -72,6 +72,12 @@ class MemorySyncSettingsStore implements SyncSettingsStore {
 }
 
 class FakeAssetCatalogRepository implements AssetCatalogRepository {
+  @override
+  Future<void> resolveConflict(
+    String code,
+    Set<String> useRemoteFields,
+  ) async {}
+
   int syncCalls = 0;
 
   @override

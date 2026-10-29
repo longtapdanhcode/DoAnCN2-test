@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/screens/asset_conflicts_screen.dart';
+
 import '../../features/asset_catalog/presentation/screens/asset_editor_screen.dart';
 import '../../features/asset_catalog/presentation/screens/assets_screen.dart';
 import '../../features/canvas_signature/presentation/screens/signature_screen.dart';
@@ -97,6 +99,13 @@ GoRouter goRouter(Ref ref) {
             path: '/sync',
             name: 'sync',
             pageBuilder: (context, state) => _tab(state, const SyncScreen()),
+            routes: [
+              GoRoute(
+                path: 'conflicts',
+                name: 'sync-conflicts',
+                builder: (context, state) => const AssetConflictsScreen(),
+              ),
+            ],
           ),
         ],
       ),

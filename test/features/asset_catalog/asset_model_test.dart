@@ -1,17 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/data/models/asset_model.dart';
-import 'package:field_inventory_edge_ai/features/asset_catalog/data/repositories/asset_catalog_repository_impl.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/domain/entities/asset_status.dart';
-
-AssetModel _asset(
-  String code, {
-  required DateTime updatedAt,
-  bool synced = true,
-}) => AssetModel(code)
-  ..name = 'Tài sản $code'
-  ..updatedAt = updatedAt
-  ..isSynced = synced;
 
 void main() {
   group('AssetModel JSON', () {
@@ -47,47 +37,6 @@ void main() {
       expect(asset.quantity, 1);
       expect(asset.assetStatus, AssetStatus.good);
       expect(asset.lastAuditAt, isNull);
-    });
-  });
-
-  group('shouldTakeRemote', () {
-    final older = DateTime.utc(2026, 10, 20);
-    final newer = DateTime.utc(2026, 10, 25);
-
-    test('takes remote when there is no local copy', () {
-      expect(shouldTakeRemote(null, _asset('A', updatedAt: older), {}), isTrue);
-    });
-
-    test('takes remote when the local copy is already synced', () {
-      final local = _asset('A', updatedAt: newer);
-      expect(
-        shouldTakeRemote(local, _asset('A', updatedAt: older), {}),
-        isTrue,
-      );
-    });
-
-    test('keeps a newer unsynced local edit', () {
-      final local = _asset('A', updatedAt: newer, synced: false);
-      expect(
-        shouldTakeRemote(local, _asset('A', updatedAt: older), {}),
-        isFalse,
-      );
-    });
-
-    test('takes remote when it is newer than the local edit', () {
-      final local = _asset('A', updatedAt: older, synced: false);
-      expect(
-        shouldTakeRemote(local, _asset('A', updatedAt: newer), {}),
-        isTrue,
-      );
-    });
-
-    test('takes remote for edits that were just pushed', () {
-      final local = _asset('A', updatedAt: newer, synced: false);
-      expect(
-        shouldTakeRemote(local, _asset('A', updatedAt: older), {'A'}),
-        isTrue,
-      );
     });
   });
 }

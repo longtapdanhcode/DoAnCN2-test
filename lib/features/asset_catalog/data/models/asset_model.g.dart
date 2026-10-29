@@ -30,6 +30,8 @@ final AssetModelSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'lastAuditAt', type: IsarType.dateTime),
       IsarPropertySchema(name: 'updatedAt', type: IsarType.dateTime),
       IsarPropertySchema(name: 'isSynced', type: IsarType.bool),
+      IsarPropertySchema(name: 'baseJson', type: IsarType.string),
+      IsarPropertySchema(name: 'conflictJson', type: IsarType.string),
     ],
     indexes: [],
   ),
@@ -82,6 +84,22 @@ int serializeAssetModel(IsarWriter writer, AssetModel object) {
     object.updatedAt.toUtc().microsecondsSinceEpoch,
   );
   IsarCore.writeBool(writer, 10, value: object.isSynced);
+  {
+    final value = object.baseJson;
+    if (value == null) {
+      IsarCore.writeNull(writer, 11);
+    } else {
+      IsarCore.writeString(writer, 11, value);
+    }
+  }
+  {
+    final value = object.conflictJson;
+    if (value == null) {
+      IsarCore.writeNull(writer, 12);
+    } else {
+      IsarCore.writeString(writer, 12, value);
+    }
+  }
   return Isar.fastHash(object.id);
 }
 
@@ -122,6 +140,8 @@ AssetModel deserializeAssetModel(IsarReader reader) {
     }
   }
   object.isSynced = IsarCore.readBool(reader, 10);
+  object.baseJson = IsarCore.readString(reader, 11);
+  object.conflictJson = IsarCore.readString(reader, 12);
   return object;
 }
 
@@ -168,6 +188,10 @@ dynamic deserializeAssetModelProp(IsarReader reader, int property) {
       }
     case 10:
       return IsarCore.readBool(reader, 10);
+    case 11:
+      return IsarCore.readString(reader, 11);
+    case 12:
+      return IsarCore.readString(reader, 12);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -185,6 +209,8 @@ sealed class _AssetModelUpdate {
     DateTime? lastAuditAt,
     DateTime? updatedAt,
     bool? isSynced,
+    String? baseJson,
+    String? conflictJson,
   });
 }
 
@@ -205,6 +231,8 @@ class _AssetModelUpdateImpl implements _AssetModelUpdate {
     Object? lastAuditAt = ignore,
     Object? updatedAt = ignore,
     Object? isSynced = ignore,
+    Object? baseJson = ignore,
+    Object? conflictJson = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -218,6 +246,8 @@ class _AssetModelUpdateImpl implements _AssetModelUpdate {
             if (lastAuditAt != ignore) 8: lastAuditAt as DateTime?,
             if (updatedAt != ignore) 9: updatedAt as DateTime?,
             if (isSynced != ignore) 10: isSynced as bool?,
+            if (baseJson != ignore) 11: baseJson as String?,
+            if (conflictJson != ignore) 12: conflictJson as String?,
           },
         ) >
         0;
@@ -236,6 +266,8 @@ sealed class _AssetModelUpdateAll {
     DateTime? lastAuditAt,
     DateTime? updatedAt,
     bool? isSynced,
+    String? baseJson,
+    String? conflictJson,
   });
 }
 
@@ -256,6 +288,8 @@ class _AssetModelUpdateAllImpl implements _AssetModelUpdateAll {
     Object? lastAuditAt = ignore,
     Object? updatedAt = ignore,
     Object? isSynced = ignore,
+    Object? baseJson = ignore,
+    Object? conflictJson = ignore,
   }) {
     return collection.updateProperties(id, {
       if (name != ignore) 2: name as String?,
@@ -267,6 +301,8 @@ class _AssetModelUpdateAllImpl implements _AssetModelUpdateAll {
       if (lastAuditAt != ignore) 8: lastAuditAt as DateTime?,
       if (updatedAt != ignore) 9: updatedAt as DateTime?,
       if (isSynced != ignore) 10: isSynced as bool?,
+      if (baseJson != ignore) 11: baseJson as String?,
+      if (conflictJson != ignore) 12: conflictJson as String?,
     });
   }
 }
@@ -288,6 +324,8 @@ sealed class _AssetModelQueryUpdate {
     DateTime? lastAuditAt,
     DateTime? updatedAt,
     bool? isSynced,
+    String? baseJson,
+    String? conflictJson,
   });
 }
 
@@ -308,6 +346,8 @@ class _AssetModelQueryUpdateImpl implements _AssetModelQueryUpdate {
     Object? lastAuditAt = ignore,
     Object? updatedAt = ignore,
     Object? isSynced = ignore,
+    Object? baseJson = ignore,
+    Object? conflictJson = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (name != ignore) 2: name as String?,
@@ -319,6 +359,8 @@ class _AssetModelQueryUpdateImpl implements _AssetModelQueryUpdate {
       if (lastAuditAt != ignore) 8: lastAuditAt as DateTime?,
       if (updatedAt != ignore) 9: updatedAt as DateTime?,
       if (isSynced != ignore) 10: isSynced as bool?,
+      if (baseJson != ignore) 11: baseJson as String?,
+      if (conflictJson != ignore) 12: conflictJson as String?,
     });
   }
 }
@@ -347,6 +389,8 @@ class _AssetModelQueryBuilderUpdateImpl implements _AssetModelQueryUpdate {
     Object? lastAuditAt = ignore,
     Object? updatedAt = ignore,
     Object? isSynced = ignore,
+    Object? baseJson = ignore,
+    Object? conflictJson = ignore,
   }) {
     final q = query.build();
     try {
@@ -360,6 +404,8 @@ class _AssetModelQueryBuilderUpdateImpl implements _AssetModelQueryUpdate {
         if (lastAuditAt != ignore) 8: lastAuditAt as DateTime?,
         if (updatedAt != ignore) 9: updatedAt as DateTime?,
         if (isSynced != ignore) 10: isSynced as bool?,
+        if (baseJson != ignore) 11: baseJson as String?,
+        if (conflictJson != ignore) 12: conflictJson as String?,
       });
     } finally {
       q.close();
@@ -1536,6 +1582,340 @@ extension AssetModelQueryFilter
       );
     });
   }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 11));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 11));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonLessThan(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 11, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 11,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 11,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> baseJsonMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 11,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 11, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  baseJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 11, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 12, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 12,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 12,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 12, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  conflictJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 12, value: ''),
+      );
+    });
+  }
 }
 
 extension AssetModelQueryObject
@@ -1686,6 +2066,38 @@ extension AssetModelQuerySortBy
       return query.addSortBy(10, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByBaseJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByBaseJsonDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByConflictJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByConflictJsonDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension AssetModelQuerySortThenBy
@@ -1833,6 +2245,38 @@ extension AssetModelQuerySortThenBy
       return query.addSortBy(10, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByBaseJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByBaseJsonDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByConflictJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByConflictJsonDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension AssetModelQueryWhereDistinct
@@ -1900,6 +2344,22 @@ extension AssetModelQueryWhereDistinct
       return query.addDistinctBy(10);
     });
   }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterDistinct> distinctByBaseJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(11, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterDistinct> distinctByConflictJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(12, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension AssetModelQueryProperty1
@@ -1961,6 +2421,18 @@ extension AssetModelQueryProperty1
   QueryBuilder<AssetModel, bool, QAfterProperty> isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(10);
+    });
+  }
+
+  QueryBuilder<AssetModel, String?, QAfterProperty> baseJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<AssetModel, String?, QAfterProperty> conflictJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }
@@ -2027,6 +2499,19 @@ extension AssetModelQueryProperty2<R>
       return query.addProperty(10);
     });
   }
+
+  QueryBuilder<AssetModel, (R, String?), QAfterProperty> baseJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<AssetModel, (R, String?), QAfterProperty>
+  conflictJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
+    });
+  }
 }
 
 extension AssetModelQueryProperty3<R1, R2>
@@ -2090,6 +2575,19 @@ extension AssetModelQueryProperty3<R1, R2>
   QueryBuilder<AssetModel, (R1, R2, bool), QOperations> isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(10);
+    });
+  }
+
+  QueryBuilder<AssetModel, (R1, R2, String?), QOperations> baseJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<AssetModel, (R1, R2, String?), QOperations>
+  conflictJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }
