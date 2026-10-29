@@ -136,7 +136,7 @@ final class ScannerControllerProvider
   }
 }
 
-String _$scannerControllerHash() => r'95cbba62fca08dbe810d9d8a9f74ca58d4b63411';
+String _$scannerControllerHash() => r'9abb8280408d03e2f77282b0ee6b26a60b0713ce';
 
 abstract class _$ScannerController extends $Notifier<ScannerUiState> {
   ScannerUiState build();

@@ -17,6 +17,9 @@ import 'package:field_inventory_edge_ai/features/offline_audit/presentation/cont
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/screens/sync_screen.dart';
 import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/screens/reports_screen.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
+
+import '../../helpers/auth_fakes.dart';
 
 class MockAuditRepository implements AuditRepository {
   @override
@@ -132,6 +135,9 @@ void main() {
             isOnlineProvider.overrideWith((ref) => Stream.value(online)),
             assetCatalogRepositoryProvider.overrideWithValue(catalogRepo),
             syncSettingsStoreProvider.overrideWithValue(settingsStore),
+            authRepositoryProvider.overrideWithValue(
+              FakeAuthRepository(signedInAs: testUser),
+            ),
           ],
           child: MaterialApp(home: Scaffold(body: screen)),
         ),

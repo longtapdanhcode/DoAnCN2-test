@@ -6,8 +6,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/repositories/scanner_repository_impl.dart';
-import '../../data/repositories/tflite_vision_repository_impl.dart';
+import '../../data/repositories/vision_ai_providers.dart';
 import '../../domain/entities/scan_result.dart';
+import '../../domain/entities/vision_analysis.dart';
 import '../../domain/repositories/scanner_repository.dart';
 import '../../domain/repositories/vision_ai_repository.dart';
 import '../../domain/usecases/process_scan_result_usecase.dart';
@@ -28,6 +29,59 @@ enum ScannerStatus {
   error,
 }
 
+/// Số liệu chẩn đoán Edge AI hiển thị ở màn Quét, để biết AI có chạy và
+/// vì sao chưa ra kết quả.
+class AiDiagnostics {
+  const AiDiagnostics({
+    this.modelStatus = VisionModelStatus.notLoaded,
+    this.modelError,
+    this.labelCount = 0,
+    this.framesReceived = 0,
+    this.framesWithoutImage = 0,
+    this.framesSkipped = 0,
+    this.framesAnalyzed = 0,
+    this.last,
+  });
+
+  final VisionModelStatus modelStatus;
+  final String? modelError;
+  final int labelCount;
+
+  /// Khung camera gửi sang (có hoặc không có mã).
+  final int framesReceived;
+
+  /// Khung không kèm ảnh (AI không có gì để phân tích).
+  final int framesWithoutImage;
+
+  /// Khung bị bỏ vì AI còn bận khung trước.
+  final int framesSkipped;
+
+  final int framesAnalyzed;
+
+  /// Kết quả khung vừa phân tích.
+  final VisionAnalysis? last;
+
+  AiDiagnostics copyWith({
+    VisionModelStatus? modelStatus,
+    String? modelError,
+    int? labelCount,
+    int? framesReceived,
+    int? framesWithoutImage,
+    int? framesSkipped,
+    int? framesAnalyzed,
+    VisionAnalysis? last,
+  }) => AiDiagnostics(
+    modelStatus: modelStatus ?? this.modelStatus,
+    modelError: modelError ?? this.modelError,
+    labelCount: labelCount ?? this.labelCount,
+    framesReceived: framesReceived ?? this.framesReceived,
+    framesWithoutImage: framesWithoutImage ?? this.framesWithoutImage,
+    framesSkipped: framesSkipped ?? this.framesSkipped,
+    framesAnalyzed: framesAnalyzed ?? this.framesAnalyzed,
+    last: last ?? this.last,
+  );
+}
+
 class ScannerUiState {
   final ScannerStatus status;
   final bool isTorchOn;
@@ -38,7 +92,11 @@ class ScannerUiState {
   final Uint8List? successFrame;
   final String? errorMessage;
 
+  /// Chẩn đoán Edge AI (mô hình, số khung, kết quả cao nhất).
+  final AiDiagnostics ai;
+
   const ScannerUiState({
+    this.ai = const AiDiagnostics(),
     this.status = ScannerStatus.initial,
     this.isTorchOn = false,
     this.latestResult,
@@ -55,8 +113,10 @@ class ScannerUiState {
     Uint8List? successFrame,
     bool clearSuccessFrame = false,
     String? errorMessage,
+    AiDiagnostics? ai,
   }) {
     return ScannerUiState(
+      ai: ai ?? this.ai,
       status: status ?? this.status,
       isTorchOn: isTorchOn ?? this.isTorchOn,
       latestResult: latestResult ?? this.latestResult,
@@ -94,6 +154,10 @@ class ScannerController extends _$ScannerController {
 
   @override
   ScannerUiState build() {
+    // Giữ một bộ AI duy nhất suốt lúc màn Quét mở. Provider này tự huỷ khi
+    // không ai theo dõi, nên chỉ `ref.read` sẽ tạo bản mới mỗi lần: mô hình
+    // nạp vào một bản rồi bị đóng ngay, còn khung hình đi tới bản chưa nạp.
+    ref.listen(visionAiRepositoryProvider, (_, _) {});
     return const ScannerUiState();
   }
 
@@ -125,6 +189,13 @@ class ScannerController extends _$ScannerController {
     } catch (e) {
       debugPrint('[ScannerController] Error loading AI model: $e');
     }
+    state = state.copyWith(
+      ai: state.ai.copyWith(
+        modelStatus: _visionAiRepo.modelStatus,
+        modelError: _visionAiRepo.modelError,
+        labelCount: _visionAiRepo.labelCount,
+      ),
+    );
 
     // 2. Kiểm tra và xin cấp quyền Camera
     final status = await Permission.camera.status;
@@ -230,30 +301,48 @@ class ScannerController extends _$ScannerController {
 
   /// Phân tích frame ảnh camera on-device với cơ chế bảo vệ CPU
   Future<void> processCameraFrame(MobileScannerCapture capture) async {
-    // Cơ chế bảo vệ CPU: Bỏ qua frame (drop frame) nếu AI đang bận inference
-    if (_isAnalyzing) return;
-
     final imageBytes = capture.image;
-    if (imageBytes == null || imageBytes.isEmpty) return;
-
+    if (imageBytes == null || imageBytes.isEmpty) {
+      state = state.copyWith(
+        ai: state.ai.copyWith(
+          framesReceived: state.ai.framesReceived + 1,
+          framesWithoutImage: state.ai.framesWithoutImage + 1,
+        ),
+      );
+      return;
+    }
+    // Cơ chế bảo vệ CPU: Bỏ qua frame (drop frame) nếu AI đang bận inference
+    if (_isAnalyzing) {
+      state = state.copyWith(
+        ai: state.ai.copyWith(
+          framesReceived: state.ai.framesReceived + 1,
+          framesSkipped: state.ai.framesSkipped + 1,
+        ),
+      );
+      return;
+    }
+    state = state.copyWith(
+      ai: state.ai.copyWith(framesReceived: state.ai.framesReceived + 1),
+    );
     _isAnalyzing = true;
     try {
-      final width = capture.size.width.toInt();
-      final height = capture.size.height.toInt();
-
-      final objects = await _visionAiRepo.analyzeFrame(
-        imageBytes,
-        width > 0 ? width : 224,
-        height > 0 ? height : 224,
+      final analysis = await _visionAiRepo.analyze(imageBytes);
+      // Đã rời màn Quét trong lúc AI xử lý khung này.
+      if (!ref.mounted) return;
+      final objects = analysis.labels;
+      final ai = state.ai.copyWith(
+        framesAnalyzed: state.ai.framesAnalyzed + 1,
+        last: analysis,
       );
-
       if (objects.isNotEmpty) {
         _emptyFrames = 0;
-        state = state.copyWith(detectedObjects: objects);
+        state = state.copyWith(detectedObjects: objects, ai: ai);
       } else if (state.detectedObjects.isNotEmpty &&
           ++_emptyFrames >= _clearAfterEmptyFrames) {
         _emptyFrames = 0;
-        state = state.copyWith(detectedObjects: const []);
+        state = state.copyWith(detectedObjects: const [], ai: ai);
+      } else {
+        state = state.copyWith(ai: ai);
       }
     } catch (e) {
       debugPrint('[ScannerController] Error during AI inference: $e');

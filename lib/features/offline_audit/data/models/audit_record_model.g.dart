@@ -33,6 +33,7 @@ final AuditRecordModelSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'signerName', type: IsarType.string),
       IsarPropertySchema(name: 'signerRole', type: IsarType.string),
       IsarPropertySchema(name: 'photoFiles', type: IsarType.stringList),
+      IsarPropertySchema(name: 'signatureUrl', type: IsarType.string),
       IsarPropertySchema(name: 'timestamp', type: IsarType.dateTime),
       IsarPropertySchema(name: 'isSynced', type: IsarType.bool),
     ],
@@ -145,12 +146,20 @@ int serializeAuditRecordModel(IsarWriter writer, AuditRecordModel object) {
       IsarCore.endList(writer, listWriter);
     }
   }
+  {
+    final value = object.signatureUrl;
+    if (value == null) {
+      IsarCore.writeNull(writer, 13);
+    } else {
+      IsarCore.writeString(writer, 13, value);
+    }
+  }
   IsarCore.writeLong(
     writer,
-    13,
+    14,
     object.timestamp?.toUtc().microsecondsSinceEpoch ?? -9223372036854775808,
   );
-  IsarCore.writeBool(writer, 14, value: object.isSynced);
+  IsarCore.writeBool(writer, 15, value: object.isSynced);
   return object.id;
 }
 
@@ -206,8 +215,9 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
       }
     }
   }
+  object.signatureUrl = IsarCore.readString(reader, 13);
   {
-    final value = IsarCore.readLong(reader, 13);
+    final value = IsarCore.readLong(reader, 14);
     if (value == -9223372036854775808) {
       object.timestamp = null;
     } else {
@@ -217,7 +227,7 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
       ).toLocal();
     }
   }
-  object.isSynced = IsarCore.readBool(reader, 14);
+  object.isSynced = IsarCore.readBool(reader, 15);
   return object;
 }
 
@@ -285,8 +295,10 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
         }
       }
     case 13:
+      return IsarCore.readString(reader, 13);
+    case 14:
       {
-        final value = IsarCore.readLong(reader, 13);
+        final value = IsarCore.readLong(reader, 14);
         if (value == -9223372036854775808) {
           return null;
         } else {
@@ -296,8 +308,8 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
           ).toLocal();
         }
       }
-    case 14:
-      return IsarCore.readBool(reader, 14);
+    case 15:
+      return IsarCore.readBool(reader, 15);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -316,6 +328,7 @@ sealed class _AuditRecordModelUpdate {
     String? notes,
     String? signerName,
     String? signerRole,
+    String? signatureUrl,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -339,6 +352,7 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
     Object? notes = ignore,
     Object? signerName = ignore,
     Object? signerRole = ignore,
+    Object? signatureUrl = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -355,8 +369,9 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
             if (notes != ignore) 8: notes as String?,
             if (signerName != ignore) 10: signerName as String?,
             if (signerRole != ignore) 11: signerRole as String?,
-            if (timestamp != ignore) 13: timestamp as DateTime?,
-            if (isSynced != ignore) 14: isSynced as bool?,
+            if (signatureUrl != ignore) 13: signatureUrl as String?,
+            if (timestamp != ignore) 14: timestamp as DateTime?,
+            if (isSynced != ignore) 15: isSynced as bool?,
           },
         ) >
         0;
@@ -376,6 +391,7 @@ sealed class _AuditRecordModelUpdateAll {
     String? notes,
     String? signerName,
     String? signerRole,
+    String? signatureUrl,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -399,6 +415,7 @@ class _AuditRecordModelUpdateAllImpl implements _AuditRecordModelUpdateAll {
     Object? notes = ignore,
     Object? signerName = ignore,
     Object? signerRole = ignore,
+    Object? signatureUrl = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -413,8 +430,9 @@ class _AuditRecordModelUpdateAllImpl implements _AuditRecordModelUpdateAll {
       if (notes != ignore) 8: notes as String?,
       if (signerName != ignore) 10: signerName as String?,
       if (signerRole != ignore) 11: signerRole as String?,
-      if (timestamp != ignore) 13: timestamp as DateTime?,
-      if (isSynced != ignore) 14: isSynced as bool?,
+      if (signatureUrl != ignore) 13: signatureUrl as String?,
+      if (timestamp != ignore) 14: timestamp as DateTime?,
+      if (isSynced != ignore) 15: isSynced as bool?,
     });
   }
 }
@@ -438,6 +456,7 @@ sealed class _AuditRecordModelQueryUpdate {
     String? notes,
     String? signerName,
     String? signerRole,
+    String? signatureUrl,
     DateTime? timestamp,
     bool? isSynced,
   });
@@ -461,6 +480,7 @@ class _AuditRecordModelQueryUpdateImpl implements _AuditRecordModelQueryUpdate {
     Object? notes = ignore,
     Object? signerName = ignore,
     Object? signerRole = ignore,
+    Object? signatureUrl = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -475,8 +495,9 @@ class _AuditRecordModelQueryUpdateImpl implements _AuditRecordModelQueryUpdate {
       if (notes != ignore) 8: notes as String?,
       if (signerName != ignore) 10: signerName as String?,
       if (signerRole != ignore) 11: signerRole as String?,
-      if (timestamp != ignore) 13: timestamp as DateTime?,
-      if (isSynced != ignore) 14: isSynced as bool?,
+      if (signatureUrl != ignore) 13: signatureUrl as String?,
+      if (timestamp != ignore) 14: timestamp as DateTime?,
+      if (isSynced != ignore) 15: isSynced as bool?,
     });
   }
 }
@@ -508,6 +529,7 @@ class _AuditRecordModelQueryBuilderUpdateImpl
     Object? notes = ignore,
     Object? signerName = ignore,
     Object? signerRole = ignore,
+    Object? signatureUrl = ignore,
     Object? timestamp = ignore,
     Object? isSynced = ignore,
   }) {
@@ -524,8 +546,9 @@ class _AuditRecordModelQueryBuilderUpdateImpl
         if (notes != ignore) 8: notes as String?,
         if (signerName != ignore) 10: signerName as String?,
         if (signerRole != ignore) 11: signerRole as String?,
-        if (timestamp != ignore) 13: timestamp as DateTime?,
-        if (isSynced != ignore) 14: isSynced as bool?,
+        if (signatureUrl != ignore) 13: signatureUrl as String?,
+        if (timestamp != ignore) 14: timestamp as DateTime?,
+        if (isSynced != ignore) 15: isSynced as bool?,
       });
     } finally {
       q.close();
@@ -2324,16 +2347,179 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  timestampIsNull() {
+  signatureUrlIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const IsNullCondition(property: 13));
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
-  timestampIsNotNull() {
+  signatureUrlIsNotNull() {
     return QueryBuilder.apply(not(), (query) {
       return query.addFilterCondition(const IsNullCondition(property: 13));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 13, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 13,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 13,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 13,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 13, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  signatureUrlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 13, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  timestampIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 14));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  timestampIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 14));
     });
   }
 
@@ -2341,7 +2527,7 @@ extension AuditRecordModelQueryFilter
   timestampEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 13, value: value),
+        EqualCondition(property: 14, value: value),
       );
     });
   }
@@ -2350,7 +2536,7 @@ extension AuditRecordModelQueryFilter
   timestampGreaterThan(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        GreaterCondition(property: 13, value: value),
+        GreaterCondition(property: 14, value: value),
       );
     });
   }
@@ -2359,7 +2545,7 @@ extension AuditRecordModelQueryFilter
   timestampGreaterThanOrEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        GreaterOrEqualCondition(property: 13, value: value),
+        GreaterOrEqualCondition(property: 14, value: value),
       );
     });
   }
@@ -2368,7 +2554,7 @@ extension AuditRecordModelQueryFilter
   timestampLessThan(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 13, value: value),
+        LessCondition(property: 14, value: value),
       );
     });
   }
@@ -2377,7 +2563,7 @@ extension AuditRecordModelQueryFilter
   timestampLessThanOrEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessOrEqualCondition(property: 13, value: value),
+        LessOrEqualCondition(property: 14, value: value),
       );
     });
   }
@@ -2386,7 +2572,7 @@ extension AuditRecordModelQueryFilter
   timestampBetween(DateTime? lower, DateTime? upper) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        BetweenCondition(property: 13, lower: lower, upper: upper),
+        BetweenCondition(property: 14, lower: lower, upper: upper),
       );
     });
   }
@@ -2395,7 +2581,7 @@ extension AuditRecordModelQueryFilter
   isSyncedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 14, value: value),
+        EqualCondition(property: 15, value: value),
       );
     });
   }
@@ -2562,30 +2748,44 @@ extension AuditRecordModelQuerySortBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignatureUrl({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortBySignatureUrlDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByTimestamp() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(13);
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  sortByTimestampDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(13, sort: Sort.desc);
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  sortByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(14);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  sortByIsSyncedDesc() {
+  sortByTimestampDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(14, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, sort: Sort.desc);
     });
   }
 }
@@ -2748,30 +2948,44 @@ extension AuditRecordModelQuerySortThenBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignatureUrl({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenBySignatureUrlDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(13, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByTimestamp() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(13);
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  thenByTimestampDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(13, sort: Sort.desc);
-    });
-  }
-
-  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  thenByIsSynced() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(14);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
-  thenByIsSyncedDesc() {
+  thenByTimestampDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(14, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, sort: Sort.desc);
     });
   }
 }
@@ -2863,16 +3077,23 @@ extension AuditRecordModelQueryWhereDistinct
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctBySignatureUrl({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(13, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
   distinctByTimestamp() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(13);
+      return query.addDistinctBy(14);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
   distinctByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(14);
+      return query.addDistinctBy(15);
     });
   }
 }
@@ -2960,16 +3181,23 @@ extension AuditRecordModelQueryProperty1
     });
   }
 
-  QueryBuilder<AuditRecordModel, DateTime?, QAfterProperty>
-  timestampProperty() {
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty>
+  signatureUrlProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(13);
     });
   }
 
-  QueryBuilder<AuditRecordModel, bool, QAfterProperty> isSyncedProperty() {
+  QueryBuilder<AuditRecordModel, DateTime?, QAfterProperty>
+  timestampProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(14);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, bool, QAfterProperty> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(15);
     });
   }
 }
@@ -3063,16 +3291,23 @@ extension AuditRecordModelQueryProperty2<R>
     });
   }
 
-  QueryBuilder<AuditRecordModel, (R, DateTime?), QAfterProperty>
-  timestampProperty() {
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  signatureUrlProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(13);
     });
   }
 
-  QueryBuilder<AuditRecordModel, (R, bool), QAfterProperty> isSyncedProperty() {
+  QueryBuilder<AuditRecordModel, (R, DateTime?), QAfterProperty>
+  timestampProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(14);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, bool), QAfterProperty> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(15);
     });
   }
 }
@@ -3169,17 +3404,24 @@ extension AuditRecordModelQueryProperty3<R1, R2>
     });
   }
 
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  signatureUrlProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(13);
+    });
+  }
+
   QueryBuilder<AuditRecordModel, (R1, R2, DateTime?), QOperations>
   timestampProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(13);
+      return query.addProperty(14);
     });
   }
 
   QueryBuilder<AuditRecordModel, (R1, R2, bool), QOperations>
   isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(14);
+      return query.addProperty(15);
     });
   }
 }

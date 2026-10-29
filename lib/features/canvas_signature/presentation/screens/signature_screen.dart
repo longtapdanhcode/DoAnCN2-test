@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signature/signature.dart';
@@ -8,6 +9,7 @@ import 'package:signature/signature.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 
 /// Thông tin phiếu được truyền từ màn lập phiếu sang màn ký.
 class AuditSummary {
@@ -54,19 +56,27 @@ class SignatureResult {
 /// Cho phép người dùng ký xác nhận kiểm kê, sau đó xuất ra dữ liệu ảnh PNG
 /// dạng byte array kèm họ tên, vai trò người ký ([SignatureResult]) trả về màn
 /// hình lập phiếu để lưu cùng bản ghi.
-class SignatureScreen extends StatefulWidget {
+class SignatureScreen extends ConsumerStatefulWidget {
   const SignatureScreen({super.key, this.summary});
 
   final AuditSummary? summary;
 
   @override
-  State<SignatureScreen> createState() => _SignatureScreenState();
+  ConsumerState<SignatureScreen> createState() => _SignatureScreenState();
 }
 
-class _SignatureScreenState extends State<SignatureScreen> {
+class _SignatureScreenState extends ConsumerState<SignatureScreen> {
   late final SignatureController _controller;
-  final _nameController = TextEditingController(text: 'Hoàng An');
-  final _roleController = TextEditingController(text: 'Kiểm kê viên');
+  // Điền sẵn họ tên và vai trò của tài khoản đang đăng nhập; vẫn sửa được
+  // khi người ký là người khác.
+  late final _nameController = TextEditingController(
+    text: ref.read(signedInUserProvider)?.displayName ?? '',
+  );
+  late final _roleController = TextEditingController(
+    text: ref.read(signedInUserProvider)?.role.label ?? 'Kiểm kê viên',
+  );
+
+  String get _auditorName => ref.read(signedInUserProvider)?.displayName ?? '';
   bool _isExporting = false;
   bool _confirmed = true;
 
@@ -239,7 +249,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
             label: 'Số lượng thực tế',
             value: _value(s == null ? null : '${s.quantity} thiết bị'),
           ),
-          KeyValueRow(label: 'Người kiểm kê', value: _value('Hoàng An')),
+          KeyValueRow(label: 'Người kiểm kê', value: _value(_auditorName)),
           KeyValueRow(
             label: 'Thời gian',
             value: _value(
@@ -412,8 +422,8 @@ class _SignatureScreenState extends State<SignatureScreen> {
                       ),
                     ),
                     const Gap(4),
-                    const Text(
-                      'Người kiểm kê: Hoàng An',
+                    Text(
+                      'Người kiểm kê: $_auditorName',
                       style: TextStyle(fontSize: 12, color: FlColors.muted),
                     ),
                   ],

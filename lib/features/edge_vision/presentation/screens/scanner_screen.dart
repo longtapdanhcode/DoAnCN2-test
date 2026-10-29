@@ -11,6 +11,7 @@ import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 
 import '../../domain/entities/scan_result.dart';
 import '../controllers/scanner_controller.dart';
+import '../widgets/ai_diagnostics_panel.dart';
 import '../widgets/scanner_overlay.dart';
 
 /// Nhãn AI đã tách phần trăm độ tin cậy, ví dụ "Động cơ điện (96.8%)".
@@ -264,7 +265,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
           main: cameraCard,
           side: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [resultCard, const Gap(16), helpCard],
+            children: [
+              resultCard,
+              const Gap(16),
+              AiDiagnosticsPanel(diagnostics: uiState.ai),
+              const Gap(16),
+              helpCard,
+            ],
           ),
           flex: 6,
           equalHeight: false,
@@ -310,6 +317,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
         SizedBox(height: 318, child: camera),
         const Gap(18),
         _MobileResultCard(uiState: uiState, guess: guess),
+        const Gap(14),
+        AiDiagnosticsPanel(diagnostics: uiState.ai),
       ],
     );
   }

@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 import 'package:field_inventory_edge_ai/main.dart';
+
+import 'helpers/auth_fakes.dart';
 
 void main() {
   testWidgets('App loads DashboardScreen smoke test', (
@@ -12,6 +15,9 @@ void main() {
       ProviderScope(
         overrides: [
           auditRecordsProvider.overrideWith((ref) => Stream.value(const [])),
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository(signedInAs: testUser),
+          ),
         ],
         child: const MyApp(),
       ),

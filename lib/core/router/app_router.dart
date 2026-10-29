@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/screens/asset_conflicts_screen.dart';
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/screens/auth_screens.dart';
+import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/locations_screen.dart';
+import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/settings_screen.dart';
 
 import '../../features/asset_catalog/presentation/screens/asset_editor_screen.dart';
 import '../../features/asset_catalog/presentation/screens/assets_screen.dart';
@@ -21,11 +26,43 @@ part 'app_router.g.dart';
 Page<void> _tab(GoRouterState state, Widget child) =>
     NoTransitionPage<void>(key: state.pageKey, child: child);
 
+const _authPaths = {'/login', '/register'};
+
 @riverpod
 GoRouter goRouter(Ref ref) {
+  final auth = ref.watch(authRepositoryProvider);
+  final mode = ref.watch(appModeProvider);
+
+  // Đăng nhập/đăng xuất thì tính lại điều hướng (Card 26).
+  final authChanged = ValueNotifier(0);
+  ref.listen(currentUserProvider, (_, _) => authChanged.value++);
+  ref.onDispose(authChanged.dispose);
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: authChanged,
+    // Bắt buộc đăng nhập. Phiên được giữ trên máy nên vẫn vào thẳng app khi
+    // ngoại tuyến sau lần đăng nhập đầu.
+    redirect: (context, state) {
+      final signedIn = auth.currentUser != null;
+      final atAuth = _authPaths.contains(state.uri.path);
+      if (!signedIn && !atAuth) return '/login';
+      if (signedIn && atAuth) return '/';
+      // Bản web không quét, lập phiếu hay đồng bộ ngoại tuyến (Card 28).
+      if (!mode.canScan && isFieldOnlyPath(state.uri.path)) return '/';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        pageBuilder: (context, state) => _tab(state, const LoginScreen()),
+      ),
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        pageBuilder: (context, state) => _tab(state, const RegisterScreen()),
+      ),
       ShellRoute(
         builder: (context, state, child) =>
             FieldlineShell(location: state.uri.path, child: child),
@@ -39,7 +76,14 @@ GoRouter goRouter(Ref ref) {
           GoRoute(
             path: '/assets',
             name: 'assets',
-            pageBuilder: (context, state) => _tab(state, const AssetsScreen()),
+            pageBuilder: (context, state) {
+              // Mở từ màn Địa điểm: lọc sẵn theo khu vực.
+              final area = state.uri.queryParameters['area'];
+              return _tab(
+                state,
+                AssetsScreen(key: ValueKey(area), initialArea: area),
+              );
+            },
             routes: [
               GoRoute(
                 path: 'new',
@@ -94,6 +138,18 @@ GoRouter goRouter(Ref ref) {
                 builder: (context, state) => const ReportPreviewScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/locations',
+            name: 'locations',
+            pageBuilder: (context, state) =>
+                _tab(state, const LocationsScreen()),
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            pageBuilder: (context, state) =>
+                _tab(state, const SettingsScreen()),
           ),
           GoRoute(
             path: '/sync',

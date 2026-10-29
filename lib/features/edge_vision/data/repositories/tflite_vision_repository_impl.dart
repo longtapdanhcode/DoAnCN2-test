@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../../../../core/ai_pipeline/ai_config.dart';
+import '../../domain/entities/vision_analysis.dart';
 import '../../domain/repositories/vision_ai_repository.dart';
 
 part 'tflite_vision_repository_impl.g.dart';
@@ -16,8 +18,25 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
   IsolateInterpreter? _isolateInterpreter;
   List<String> _labels = [];
   bool _isModelLoaded = false;
+  VisionModelStatus _status = VisionModelStatus.notLoaded;
+  String? _error;
+
+  /// Đã gọi [close]: không nhận khung mới nữa.
+  bool _closed = false;
+
+  /// Lượt suy luận đang chạy trong isolate (nếu có).
+  Future<void>? _inference;
 
   bool get isModelLoaded => _isModelLoaded;
+
+  @override
+  VisionModelStatus get modelStatus => _status;
+
+  @override
+  String? get modelError => _error;
+
+  @override
+  int get labelCount => _labels.length;
 
   @override
   Future<void> loadModel() async {
@@ -29,6 +48,7 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
           '[VisionAI] Model file is empty (placeholder), skipping AI inference',
         );
         _isModelLoaded = false;
+        _status = VisionModelStatus.missing;
         return;
       }
 
@@ -42,7 +62,14 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
       _isolateInterpreter = await IsolateInterpreter.create(
         address: _interpreter!.address,
       );
+      // Rời màn Quét trong lúc đang nạp: giải phóng ngay, không dùng nữa.
+      if (_closed) {
+        _release();
+        return;
+      }
       _isModelLoaded = true;
+      _status = VisionModelStatus.loaded;
+      _error = null;
       debugPrint('[VisionAI] TFLite model loaded successfully');
 
       // 3. Đọc nhãn phân loại nếu có
@@ -59,6 +86,8 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
         '[VisionAI] Model file is empty or invalid, skipping AI inference: $e',
       );
       _isModelLoaded = false;
+      _status = VisionModelStatus.failed;
+      _error = '$e';
     }
   }
 
@@ -67,33 +96,74 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
     List<int> imageBytes,
     int width,
     int height,
-  ) async {
-    if (!_isModelLoaded || _isolateInterpreter == null) {
-      return const [];
+  ) async => (await analyze(imageBytes)).labels;
+
+  @override
+  Future<VisionAnalysis> analyze(List<int> imageBytes) async {
+    if (_closed || !_isModelLoaded || _isolateInterpreter == null) {
+      return const VisionAnalysis();
     }
 
+    final watch = Stopwatch()..start();
     try {
       final bytes = Uint8List.fromList(imageBytes);
       // Giải mã JPEG + letterbox + chuẩn hoá nằm ngoài luồng giao diện.
-      final input = await Isolate.run(() => _buildInputTensor(bytes));
-      if (input == null) return const [];
+      final prepared = await Isolate.run(() => _buildInputTensor(bytes));
+      if (prepared == null) return const VisionAnalysis();
+      final (input, frameWidth, frameHeight) = prepared;
+      final interpreter = _isolateInterpreter;
+      if (_closed || interpreter == null) return const VisionAnalysis();
 
       final channels = 4 + _labels.length;
       final output = Float32List(channels * _anchorCount);
-      await _isolateInterpreter!.run(input.buffer, output.buffer);
+      final run = interpreter.run(input.buffer, output.buffer);
+      _inference = run;
+      try {
+        await run;
+      } finally {
+        _inference = null;
+      }
 
-      return decodeDetections([
+      final rows = [
         for (var c = 0; c < channels; c++)
           Float32List.sublistView(
             output,
             c * _anchorCount,
             (c + 1) * _anchorCount,
           ),
-      ], _labels);
+      ];
+      final top = topCandidate(rows, _labels.length);
+      return VisionAnalysis(
+        labels: decodeDetections(rows, _labels),
+        topLabel: top == null ? null : _labels[top.$1],
+        topScore: top?.$2 ?? 0,
+        topThreshold: top == null ? 0 : thresholdFor(top.$1),
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+        elapsed: watch.elapsed,
+      );
     } catch (e) {
       debugPrint('[VisionAI] analyzeFrame error: $e');
-      return const [];
+      return VisionAnalysis(elapsed: watch.elapsed);
     }
+  }
+
+  /// Ngưỡng tin cậy của nhãn thứ [classIndex].
+  static double thresholdFor(int classIndex) =>
+      AiConfig.defectClassIndexes.contains(classIndex)
+      ? AiConfig.defectConfidenceThreshold
+      : AiConfig.confidenceThreshold;
+
+  /// Nhãn có điểm cao nhất (chỉ số, điểm), kể cả khi dưới ngưỡng.
+  @visibleForTesting
+  static (int, double)? topCandidate(List<List<double>> output, int labels) {
+    (int, double)? best;
+    for (var c = 0; c < labels && 4 + c < output.length; c++) {
+      for (final score in output[4 + c]) {
+        if (best == null || score > best.$2) best = (c, score);
+      }
+    }
+    return best;
   }
 
   /// Số ô dự đoán của YOLO ở đầu vào 640x640.
@@ -102,7 +172,7 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
   /// Giải mã ảnh, letterbox về vuông (nền xám 114 như lúc huấn luyện) rồi
   /// chuyển sang tensor float32 dạng NCHW 1x3x640x640, giá trị 0..1.
   /// Chạy trong isolate nên phải là hàm tĩnh, không dùng trạng thái của lớp.
-  static Float32List? _buildInputTensor(Uint8List jpeg) {
+  static (Float32List, int, int)? _buildInputTensor(Uint8List jpeg) {
     final source = img.decodeImage(jpeg);
     if (source == null) return null;
 
@@ -126,7 +196,7 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
         data[2 * plane + i] = pixel.b / 255.0;
       }
     }
-    return data;
+    return (data, source.width, source.height);
   }
 
   /// Chọn kết quả từ đầu ra YOLO [channels][anchors]: mỗi nhãn lấy điểm cao
@@ -138,9 +208,7 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
   ) {
     final best = <int, double>{};
     for (var c = 0; c < labels.length && 4 + c < output.length; c++) {
-      final threshold = AiConfig.defectClassIndexes.contains(c)
-          ? AiConfig.defectConfidenceThreshold
-          : AiConfig.confidenceThreshold;
+      final threshold = thresholdFor(c);
       var top = 0.0;
       for (final score in output[4 + c]) {
         if (score > top) top = score;
@@ -157,11 +225,24 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
 
   @override
   void close() {
+    _closed = true;
+    _isModelLoaded = false;
+    // Không giải phóng mô hình khi isolate còn đang chạy trên nó: bộ nhớ
+    // native bị xoá giữa chừng làm iOS tắt app (bấm quay lại lúc AI đang xử
+    // lý một khung). Chờ lượt đó xong rồi mới giải phóng.
+    final running = _inference;
+    if (running == null) {
+      _release();
+    } else {
+      unawaited(running.catchError((Object _) {}).whenComplete(_release));
+    }
+  }
+
+  void _release() {
     _isolateInterpreter?.close();
     _isolateInterpreter = null;
     _interpreter?.close();
     _interpreter = null;
-    _isModelLoaded = false;
   }
 }
 

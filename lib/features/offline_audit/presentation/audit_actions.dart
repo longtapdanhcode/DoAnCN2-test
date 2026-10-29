@@ -71,14 +71,25 @@ Future<void> triggerSync(BuildContext context, WidgetRef ref) async {
   }
 }
 
-/// Đọc các ảnh minh chứng của [records] từ máy để đưa vào PDF.
+/// Đọc các ảnh minh chứng của [records] để đưa vào PDF.
+///
+/// Phiếu đọc từ đám mây (bản web) chỉ có đường dẫn chữ ký: tải ảnh chữ ký về
+/// [AuditRecordModel.signatureBytes] luôn để PDF vẽ được chữ ký.
 Future<Map<String, Uint8List>> loadEvidencePhotos(
   WidgetRef ref,
   List<AuditRecordModel> records,
-) {
-  return ref.read(evidencePhotoStoreProvider).readAll([
-    for (final r in records) ...?r.photoFiles,
-  ]);
+) async {
+  final store = ref.read(evidencePhotoStoreProvider);
+  for (final r in records) {
+    final url = r.signatureUrl;
+    if ((r.signatureBytes?.isEmpty ?? true) &&
+        url != null &&
+        url.startsWith('http')) {
+      final bytes = await store.read(url);
+      if (bytes != null) r.signatureBytes = bytes;
+    }
+  }
+  return store.readAll([for (final r in records) ...?r.photoFiles]);
 }
 
 /// Xuất báo cáo PDF của kỳ đang chọn và mở hộp thoại chia sẻ hệ thống.

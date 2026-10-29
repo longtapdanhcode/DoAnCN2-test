@@ -6,6 +6,7 @@ import 'core/database/local_db_init.dart';
 import 'core/network/supabase_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/fieldline_theme.dart';
+import 'features/cloud_console/console_overrides.dart';
 
 /// Entry point cho ứng dụng Field Inventory & Edge AI.
 ///
@@ -22,6 +23,13 @@ Future<void> main() async {
 
   // Khởi tạo Supabase client (Cloud Sync & Auth).
   await initSupabase();
+
+  // Bản web (Card 28): trung tâm quản lý dữ liệu, đọc/ghi thẳng Supabase,
+  // không dùng Isar (không lưu ngoại tuyến, không quét camera).
+  if (kIsWeb) {
+    runApp(ProviderScope(overrides: consoleOverrides(), child: const MyApp()));
+    return;
+  }
 
   // Khởi tạo Isar local database (Offline-First).
   final isar = await initIsar();

@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
+import 'package:field_inventory_edge_ai/features/workspace/data/workspace_settings.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/account_sheet.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
@@ -87,6 +90,8 @@ class DesktopDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingSyncCountProvider);
+    final canScan = ref.watch(appModeProvider).canScan;
+    final cloudCount = ref.watch(finalAuditRecordsProvider).length;
     // Bản nháp luôn hiện đầu danh sách để không bị trôi mất; còn lại là phiếu chính thức.
     final records = [
       ...ref.watch(draftAuditRecordsProvider),
@@ -101,11 +106,18 @@ class DesktopDashboard extends ConsumerWidget {
       heading: DesktopPageHeading(
         title: 'Tổng quan hiện trường',
         subtitle: 'Theo dõi tài sản, tiến độ kiểm kê và các vấn đề cần xử lý hôm nay.',
-        action: FilledButton.icon(
-          onPressed: () => context.go('/scanner'),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Tạo phiếu kiểm kê'),
-        ),
+        // Bản web không quét: lập phiếu bằng app điện thoại (Card 28).
+        action: canScan
+            ? FilledButton.icon(
+                onPressed: () => context.go('/scanner'),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Tạo phiếu kiểm kê'),
+              )
+            : FilledButton.icon(
+                onPressed: () => context.go('/reports'),
+                icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                label: const Text('Xem báo cáo'),
+              ),
       ),
       children: [
         LayoutBuilder(
@@ -136,14 +148,24 @@ class DesktopDashboard extends ConsumerWidget {
                 icon: Icons.center_focus_strong_outlined,
                 tone: FlTone.warning,
               ),
-              _StatCard(
-                label: 'Chờ đồng bộ',
-                value: pending,
-                caption: 'Đã lưu an toàn trên máy',
-                icon: Icons.sync_rounded,
-                tone: FlTone.info,
-                onTap: () => context.go('/sync'),
-              ),
+              if (canScan)
+                _StatCard(
+                  label: 'Chờ đồng bộ',
+                  value: pending,
+                  caption: 'Đã lưu an toàn trên máy',
+                  icon: Icons.sync_rounded,
+                  tone: FlTone.info,
+                  onTap: () => context.go('/sync'),
+                )
+              else
+                _StatCard(
+                  label: 'Phiếu trên đám mây',
+                  value: cloudCount,
+                  caption: 'Do điện thoại gửi lên',
+                  icon: Icons.cloud_done_outlined,
+                  tone: FlTone.info,
+                  onTap: () => context.go('/reports'),
+                ),
             ];
             final perRow = constraints.maxWidth >= 900 ? 4 : 2;
             return FlGrid(columns: perRow, spacing: 16, children: cards);
@@ -152,7 +174,7 @@ class DesktopDashboard extends ConsumerWidget {
         const Gap(16),
         FlSplitRow(
           main: _AreaProgressCard(stats: stats),
-          side: const _EdgeAiCard(),
+          side: canScan ? const _EdgeAiCard() : const _FieldAppCard(),
         ),
         const Gap(16),
         FlSplitRow(
@@ -307,6 +329,40 @@ class _AreaProgressCard extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bản web: thay thẻ quét bằng lời nhắc dùng app điện thoại để quét.
+class _FieldAppCard extends StatelessWidget {
+  const _FieldAppCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FlCard(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CardHeader(
+            title: 'Quét bằng app điện thoại',
+            subtitle: 'Bản web dùng để quản lý dữ liệu',
+          ),
+          Gap(16),
+          Text(
+            'Quét QR, nhận diện AI, lập và ký phiếu thực hiện trên app '
+            'điện thoại. Phiếu đã ký tự gửi lên đám mây và hiện ở đây.',
+            style: TextStyle(fontSize: 13, color: FlColors.muted, height: 1.5),
+          ),
+          Gap(16),
+          InfoBanner(
+            icon: Icons.cloud_done_outlined,
+            tone: FlTone.info,
+            title: 'Dữ liệu đọc trực tiếp từ đám mây',
+            subtitle: 'Tự tải lại mỗi phút, hoặc bấm nút tải lại ở thanh trên.',
+          ),
         ],
       ),
     );
@@ -620,11 +676,11 @@ class MobileDashboard extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(24, 20, 22, 24),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'FIELDLINE',
                             style: TextStyle(
                               color: Colors.white,
@@ -632,28 +688,25 @@ class MobileDashboard extends ConsumerWidget {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Gap(8),
-                          Text(
-                            'Nhà máy Bình An  ·  Ca sáng',
-                            style: TextStyle(
-                              color: FlColors.sidebarText,
-                              fontSize: 13,
+                          const Gap(8),
+                          // Chạm để xem các khu vực của nơi đang kiểm kê.
+                          InkWell(
+                            onTap: () => context.push('/locations'),
+                            child: Text(
+                              '${ref.watch(workspaceProvider).summary}  ›',
+                              style: const TextStyle(
+                                color: FlColors.sidebarText,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const CircleAvatar(
+                    const AccountAvatar(
                       radius: 18,
-                      backgroundColor: FlColors.logoTile,
-                      child: Text(
-                        'HA',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      background: FlColors.logoTile,
+                      foreground: Colors.white,
                     ),
                   ],
                 ),
@@ -747,31 +800,34 @@ class MobileDashboard extends ConsumerWidget {
                 ],
               ),
               const Gap(16),
-              FlCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Bắt đầu tại hiện trường',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+              if (!ref.watch(appModeProvider).canScan)
+                const _FieldAppCard()
+              else
+                FlCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Bắt đầu tại hiện trường',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const Gap(6),
-                    const Text(
-                      'Quét mã QR hoặc nhận diện thiết bị bằng AI',
-                      style: TextStyle(fontSize: 12, color: FlColors.muted),
-                    ),
-                    const Gap(14),
-                    MobilePrimaryButton(
-                      label: 'Quét thiết bị',
-                      onPressed: () => context.go('/scanner'),
-                    ),
-                  ],
+                      const Gap(6),
+                      const Text(
+                        'Quét mã QR hoặc nhận diện thiết bị bằng AI',
+                        style: TextStyle(fontSize: 12, color: FlColors.muted),
+                      ),
+                      const Gap(14),
+                      MobilePrimaryButton(
+                        label: 'Quét thiết bị',
+                        onPressed: () => context.go('/scanner'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               const Gap(24),
               if (drafts.isNotEmpty) ...[
                 const SectionLabel('Bản nháp chờ ký'),

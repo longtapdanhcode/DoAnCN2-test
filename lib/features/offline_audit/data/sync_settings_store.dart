@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/prefs_json_store.dart';
+
 /// Thiết lập đồng bộ người dùng chọn ở màn Đồng bộ.
 @immutable
 class SyncSettings {
@@ -71,6 +73,20 @@ class FileSyncSettingsStore implements SyncSettingsStore {
   }
 }
 
+/// Bản web: lưu trong localStorage của trình duyệt.
+class PrefsSyncSettingsStore implements SyncSettingsStore {
+  static const _store = PrefsJsonStore('sync_settings');
+
+  @override
+  Future<SyncSettings> load() async {
+    final json = await _store.read();
+    return json == null ? const SyncSettings() : SyncSettings.fromJson(json);
+  }
+
+  @override
+  Future<void> save(SyncSettings settings) => _store.write(settings.toJson());
+}
+
 final syncSettingsStoreProvider = Provider<SyncSettingsStore>(
-  (ref) => FileSyncSettingsStore(),
+  (ref) => kIsWeb ? PrefsSyncSettingsStore() : FileSyncSettingsStore(),
 );
