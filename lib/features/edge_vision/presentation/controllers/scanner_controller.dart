@@ -327,6 +327,8 @@ class ScannerController extends _$ScannerController {
     _isAnalyzing = true;
     try {
       final analysis = await _visionAiRepo.analyze(imageBytes);
+      // Đã rời màn Quét trong lúc AI xử lý khung này.
+      if (!ref.mounted) return;
       final objects = analysis.labels;
       final ai = state.ai.copyWith(
         framesAnalyzed: state.ai.framesAnalyzed + 1,

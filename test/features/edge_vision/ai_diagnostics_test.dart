@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,10 @@ import 'package:field_inventory_edge_ai/features/edge_vision/presentation/widget
 
 class _FakeVision implements VisionAiRepository {
   VisionAnalysis next = const VisionAnalysis();
+
+  /// Đặt để giữ lượt phân tích treo cho tới khi test hoàn tất nó.
+  Completer<VisionAnalysis>? pending;
+  bool closed = false;
   int calls = 0;
   int loadCalls = 0;
 
@@ -30,7 +35,8 @@ class _FakeVision implements VisionAiRepository {
   @override
   Future<VisionAnalysis> analyze(List<int> imageBytes) async {
     calls++;
-    return next;
+    final p = pending;
+    return p == null ? next : p.future;
   }
 
   @override
@@ -38,7 +44,7 @@ class _FakeVision implements VisionAiRepository {
       (await analyze(b)).labels;
 
   @override
-  void close() {}
+  void close() => closed = true;
 }
 
 const _chair = VisionAnalysis(
@@ -184,6 +190,33 @@ void main() {
       expect(created, hasLength(1));
       expect(created.single.loadCalls, 1);
       expect(created.single.calls, 2);
+    });
+
+    test('rời màn Quét khi AI đang xử lý một khung không gây lỗi', () async {
+      final v = _FakeVision()..pending = Completer<VisionAnalysis>();
+      final c = ProviderContainer(
+        overrides: [
+          visionAiRepositoryProvider.overrideWith((ref) {
+            ref.onDispose(v.close);
+            return v;
+          }),
+        ],
+      );
+      final sub = c.listen(scannerControllerProvider, (_, _) {});
+      final frame = c
+          .read(scannerControllerProvider.notifier)
+          .processCameraFrame(BarcodeCapture(image: Uint8List.fromList([1])));
+      await Future<void>.delayed(Duration.zero);
+
+      // Bấm quay lại: màn Quét đóng, bộ AI được đóng.
+      sub.close();
+      await Future<void>.delayed(Duration.zero);
+      expect(v.closed, isTrue);
+
+      // Lượt phân tích xong sau đó không được ghi vào controller đã huỷ.
+      v.pending!.complete(_chair);
+      await expectLater(frame, completes);
+      c.dispose();
     });
 
     test('khung không có ảnh được đếm riêng, không gọi AI', () async {

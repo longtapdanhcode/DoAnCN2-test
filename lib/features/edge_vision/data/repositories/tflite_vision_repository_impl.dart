@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,12 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
   bool _isModelLoaded = false;
   VisionModelStatus _status = VisionModelStatus.notLoaded;
   String? _error;
+
+  /// Đã gọi [close]: không nhận khung mới nữa.
+  bool _closed = false;
+
+  /// Lượt suy luận đang chạy trong isolate (nếu có).
+  Future<void>? _inference;
 
   bool get isModelLoaded => _isModelLoaded;
 
@@ -55,6 +62,11 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
       _isolateInterpreter = await IsolateInterpreter.create(
         address: _interpreter!.address,
       );
+      // Rời màn Quét trong lúc đang nạp: giải phóng ngay, không dùng nữa.
+      if (_closed) {
+        _release();
+        return;
+      }
       _isModelLoaded = true;
       _status = VisionModelStatus.loaded;
       _error = null;
@@ -88,7 +100,7 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
 
   @override
   Future<VisionAnalysis> analyze(List<int> imageBytes) async {
-    if (!_isModelLoaded || _isolateInterpreter == null) {
+    if (_closed || !_isModelLoaded || _isolateInterpreter == null) {
       return const VisionAnalysis();
     }
 
@@ -99,10 +111,18 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
       final prepared = await Isolate.run(() => _buildInputTensor(bytes));
       if (prepared == null) return const VisionAnalysis();
       final (input, frameWidth, frameHeight) = prepared;
+      final interpreter = _isolateInterpreter;
+      if (_closed || interpreter == null) return const VisionAnalysis();
 
       final channels = 4 + _labels.length;
       final output = Float32List(channels * _anchorCount);
-      await _isolateInterpreter!.run(input.buffer, output.buffer);
+      final run = interpreter.run(input.buffer, output.buffer);
+      _inference = run;
+      try {
+        await run;
+      } finally {
+        _inference = null;
+      }
 
       final rows = [
         for (var c = 0; c < channels; c++)
@@ -205,11 +225,24 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
 
   @override
   void close() {
+    _closed = true;
+    _isModelLoaded = false;
+    // Không giải phóng mô hình khi isolate còn đang chạy trên nó: bộ nhớ
+    // native bị xoá giữa chừng làm iOS tắt app (bấm quay lại lúc AI đang xử
+    // lý một khung). Chờ lượt đó xong rồi mới giải phóng.
+    final running = _inference;
+    if (running == null) {
+      _release();
+    } else {
+      unawaited(running.catchError((Object _) {}).whenComplete(_release));
+    }
+  }
+
+  void _release() {
     _isolateInterpreter?.close();
     _isolateInterpreter = null;
     _interpreter?.close();
     _interpreter = null;
-    _isModelLoaded = false;
   }
 }
 
