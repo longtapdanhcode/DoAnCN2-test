@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:isar_plus/isar_plus.dart';
 
 import '../../domain/entities/asset_status.dart';
@@ -43,6 +45,25 @@ class AssetModel {
 
   /// `false` khi có thay đổi trên máy chưa đẩy lên Supabase.
   bool isSynced = true;
+
+  /// Nội dung (JSON) của lần gần nhất bản trên máy và máy chủ khớp nhau, làm
+  /// mốc gộp ba chiều khi cả hai bên cùng sửa.
+  String? baseJson;
+
+  /// Dòng máy chủ (JSON) khác phiên bản với thay đổi trên máy, chờ đối chiếu.
+  String? conflictJson;
+
+  @ignore
+  bool get hasConflict => conflictJson != null;
+
+  /// Bản máy chủ đang xung đột, hoặc `null` nếu không có.
+  @ignore
+  AssetModel? get conflictRemote {
+    final json = conflictJson;
+    if (json == null) return null;
+    final value = jsonDecode(json);
+    return value is Map<String, dynamic> ? AssetModel.fromJson(value) : null;
+  }
 
   @ignore
   AssetStatus get assetStatus => AssetStatus.fromCode(status);

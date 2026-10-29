@@ -14,6 +14,9 @@ import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/s
 import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
 
 import '../audit_actions.dart';
+
+import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
+
 import '../../data/sync_settings_store.dart';
 import '../controllers/audit_records_provider.dart';
 import '../controllers/auto_sync_controller.dart';
@@ -29,6 +32,13 @@ class SyncScreen extends ConsumerStatefulWidget {
 
 class _SyncScreenState extends ConsumerState<SyncScreen> {
   bool _showHistory = false;
+  int _conflicts = 0;
+
+  void _openConflicts() => context.push('/sync/conflicts');
+
+  String get _conflictLabel => _conflicts == 0
+      ? 'Không có tài sản cần đối chiếu'
+      : '$_conflicts tài sản cần đối chiếu';
 
   SyncSettings get _settings =>
       ref.watch(syncSettingsProvider).value ?? const SyncSettings();
@@ -62,6 +72,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
     final online = ref.watch(isOnlineProvider).value ?? true;
     final pending = records.where((r) => !r.isSynced).toList();
     final synced = records.where((r) => r.isSynced).toList();
+    _conflicts = ref.watch(assetConflictsProvider).length;
 
     return ResponsiveLayout.isDesktop(context)
         ? _buildDesktop(pending, synced, syncState, online)
@@ -265,7 +276,10 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
             children: [
               const CardHeader(title: 'Xử lý dữ liệu khác phiên bản'),
               const Gap(16),
-              const StatusPill(label: 'Không có phiếu cần đối chiếu'),
+              StatusPill(
+                label: _conflictLabel,
+                tone: _conflicts == 0 ? FlTone.success : FlTone.warning,
+              ),
               const Gap(14),
               const Text(
                 'So sánh bản trên máy và đám mây để chọn thông tin cần giữ lại.',
@@ -279,7 +293,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: null,
+                  onPressed: _openConflicts,
                   child: const Align(
                     alignment: Alignment.centerLeft,
                     child: Text('Xem & đối chiếu dữ liệu'),
@@ -341,10 +355,10 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               caption: '${pending.length} phiếu sẵn sàng tải lên',
               color: FlColors.info,
             ),
-            const _SyncStat(
+            _SyncStat(
               label: 'Cần đối chiếu',
-              value: 0,
-              caption: 'Dữ liệu khác phiên bản',
+              value: _conflicts,
+              caption: 'Tài sản khác phiên bản',
               color: FlColors.warning,
             ),
             _SyncStat(
@@ -541,6 +555,47 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                   ),
                 ),
                 const Gap(8),
+              ],
+              if (_conflicts > 0) ...[
+                const Gap(16),
+                FlCard(
+                  onTap: _openConflicts,
+                  color: FlColors.warningSoft,
+                  borderColor: FlColors.warning,
+                  padding: const EdgeInsets.all(15),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.compare_arrows_rounded,
+                        color: FlColors.warning,
+                      ),
+                      const Gap(12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _conflictLabel,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Gap(4),
+                            const Text(
+                              'Máy này và đám mây cùng sửa. Chạm để chọn dữ liệu cần giữ.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: FlColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
+                ),
               ],
               const Gap(16),
               FlCard(

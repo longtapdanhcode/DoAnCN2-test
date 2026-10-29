@@ -43,6 +43,12 @@ class MockAuditRepository implements AuditRepository {
 }
 
 class _MemoryCatalog implements AssetCatalogRepository {
+  @override
+  Future<void> resolveConflict(
+    String code,
+    Set<String> useRemoteFields,
+  ) async {}
+
   _MemoryCatalog(List<AssetModel> initial)
     : items = {for (final a in initial) a.code: a};
 

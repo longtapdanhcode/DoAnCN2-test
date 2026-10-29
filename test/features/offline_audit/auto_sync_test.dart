@@ -59,6 +59,12 @@ class _SyncRepo implements SyncRepository {
 }
 
 class _CatalogRepo implements AssetCatalogRepository {
+  @override
+  Future<void> resolveConflict(
+    String code,
+    Set<String> useRemoteFields,
+  ) async {}
+
   int syncs = 0;
 
   @override

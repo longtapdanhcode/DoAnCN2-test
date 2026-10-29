@@ -42,6 +42,10 @@ Future<void> triggerSync(BuildContext context, WidgetRef ref) async {
     try {
       final result = await ref.read(assetCatalogRepositoryProvider).sync();
       catalog = ' Danh mục: ${result.pulled} tài sản.';
+      if (result.conflicts > 0) {
+        catalogOk = false;
+        catalog += ' ${result.conflicts} tài sản khác phiên bản cần đối chiếu.';
+      }
     } catch (e) {
       debugPrint('[Sync] Lỗi đồng bộ danh mục tài sản: $e');
       catalogOk = false;

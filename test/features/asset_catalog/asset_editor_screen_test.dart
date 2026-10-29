@@ -12,6 +12,12 @@ import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/scre
 
 /// Danh mục trong bộ nhớ, đếm số lần lưu và đồng bộ.
 class _MemoryCatalog implements AssetCatalogRepository {
+  @override
+  Future<void> resolveConflict(
+    String code,
+    Set<String> useRemoteFields,
+  ) async {}
+
   _MemoryCatalog([List<AssetModel> initial = const []])
     : items = {for (final a in initial) a.code: a};
 

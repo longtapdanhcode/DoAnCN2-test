@@ -18,3 +18,9 @@ final assetCatalogRepositoryProvider = Provider<AssetCatalogRepository>((ref) {
 final assetsProvider = StreamProvider<List<AssetModel>>((ref) {
   return ref.watch(assetCatalogRepositoryProvider).watchAll();
 });
+
+/// Tài sản khác phiên bản giữa máy này và máy chủ, chờ người dùng đối chiếu.
+final assetConflictsProvider = Provider<List<AssetModel>>((ref) {
+  final assets = ref.watch(assetsProvider).value ?? const [];
+  return assets.where((a) => a.hasConflict).toList();
+});
