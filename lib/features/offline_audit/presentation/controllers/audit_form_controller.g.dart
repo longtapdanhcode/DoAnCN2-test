@@ -54,7 +54,7 @@ final class AuditFormControllerProvider
 }
 
 String _$auditFormControllerHash() =>
-    r'03d2ff27d51c0f132fc42bfcedc39e3bbd8afa1b';
+    r'8e57d7a4e032a1a836b4c2d806f9a4da82b8f4d4';
 
 /// Controller quản lý luồng nhập và lưu bản ghi kiểm kê hiện trường.
 ///

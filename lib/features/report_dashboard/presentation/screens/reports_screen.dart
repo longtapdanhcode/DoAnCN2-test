@@ -28,7 +28,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     // Báo cáo chỉ gồm phiếu chính thức (đã ký); bản nháp không hiện ở đây.
-    final records = ref.watch(finalAuditRecordsProvider);
+    final records = ref.watch(reportRecordsProvider);
     return ResponsiveLayout.isDesktop(context)
         ? _buildDesktop(records)
         : _buildMobile(records);
@@ -36,7 +36,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildDesktop(List<AuditRecordModel> records) {
     final now = DateTime.now();
-    final stats = ref.watch(auditStatsProvider);
+    final stats = ref.watch(reportStatsProvider);
     final period = stats.periodLabel;
     final areas = _area == null
         ? stats.areas
@@ -49,16 +49,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: _Labeled(
-              label: 'Kỳ báo cáo',
-              child: DropdownButtonFormField<String>(
-                initialValue: period,
-                isExpanded: true,
-                decoration: const InputDecoration(),
-                items: [DropdownMenuItem(value: period, child: Text(period))],
-                onChanged: (_) {},
-              ),
-            ),
+            child: _Labeled(label: 'Kỳ báo cáo', child: _PeriodDropdown()),
           ),
           const Gap(20),
           Expanded(
@@ -82,10 +73,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
           const Spacer(flex: 4),
-          FilledButton(
-            onPressed: () => showFlSnack(context, 'Đã áp dụng bộ lọc $period.'),
-            child: const Text('Áp dụng bộ lọc'),
-          ),
         ],
       ),
     );
@@ -154,9 +141,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const CardHeader(
+          CardHeader(
             title: 'Xem trước biên bản',
-            trailing: StatusPill(label: 'Xem trước • A4', tone: FlTone.neutral),
+            trailing: TextButton.icon(
+              onPressed: () => context.go('/reports/preview'),
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: const Text('Xem PDF đầy đủ'),
+            ),
           ),
           const Gap(18),
           Container(
@@ -196,7 +187,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildMobile(List<AuditRecordModel> records) {
     final pending = ref.watch(pendingSyncCountProvider);
-    final stats = ref.watch(auditStatsProvider);
+    final stats = ref.watch(reportStatsProvider);
     final progress = stats.progress;
 
     return MobilePage(
@@ -207,6 +198,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         onPressed: () => exportPdfReport(context, ref),
       ),
       children: [
+        const _Labeled(label: 'Kỳ báo cáo', child: _PeriodDropdown()),
+        const Gap(10),
+        OutlinedButton.icon(
+          onPressed: () => context.go('/reports/preview'),
+          icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+          label: const Text('Xem trước PDF (cả chữ ký)'),
+        ),
+        const Gap(14),
         FlCard(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -378,6 +377,29 @@ class _Labeled extends StatelessWidget {
         const Gap(8),
         child,
       ],
+    );
+  }
+}
+
+/// Chọn tháng của kỳ báo cáo; chỉ liệt kê các tháng có phiếu (và tháng hiện tại).
+class _PeriodDropdown extends ConsumerWidget {
+  const _PeriodDropdown();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final periods = ref.watch(availableReportPeriodsProvider);
+    final period = ref.watch(reportPeriodProvider);
+    return DropdownButtonFormField<DateTime>(
+      key: ValueKey(period),
+      initialValue: period,
+      isExpanded: true,
+      decoration: const InputDecoration(),
+      items: [
+        for (final m in periods)
+          DropdownMenuItem(value: m, child: Text(AuditStats.labelOf(m))),
+      ],
+      onChanged: (m) =>
+          ref.read(selectedReportPeriodProvider.notifier).select(m),
     );
   }
 }

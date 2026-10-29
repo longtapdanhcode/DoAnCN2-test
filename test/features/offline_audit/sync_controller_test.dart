@@ -11,6 +11,9 @@ import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositori
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/sync_controller.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   List<AuditRecordModel> records = [];
 
   @override
@@ -38,6 +41,10 @@ class MockSyncRepository implements SyncRepository {
     if (bytes.isEmpty) return null;
     return 'https://supabase.co/storage/v1/object/public/signatures/test.png';
   }
+
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://supabase.co/storage/v1/object/public/evidence/test.jpg';
 
   @override
   Future<void> syncPendingRecords(List<AuditRecordModel> records) async {

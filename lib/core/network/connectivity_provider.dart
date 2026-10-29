@@ -15,6 +15,18 @@ final isOnlineProvider = StreamProvider<bool>((ref) async* {
 bool _hasNetwork(List<ConnectivityResult> results) =>
     results.any((r) => r != ConnectivityResult.none);
 
+/// `true` khi thiết bị đang dùng Wi-Fi hoặc Ethernet (mạng không tính dung
+/// lượng), dùng cho tuỳ chọn "Chỉ tải ảnh qua Wi-Fi".
+final isOnWifiProvider = StreamProvider<bool>((ref) async* {
+  final connectivity = Connectivity();
+  yield _hasWifi(await connectivity.checkConnectivity());
+  yield* connectivity.onConnectivityChanged.map(_hasWifi);
+});
+
+bool _hasWifi(List<ConnectivityResult> results) => results.any(
+  (r) => r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet,
+);
+
 /// Trạng thái mạng hiện tại, dùng trước khi gọi máy chủ.
 ///
 /// Giá trị chỉ có khi [isOnlineProvider] đang được theo dõi: khung app

@@ -9,6 +9,7 @@ import '../../features/edge_vision/presentation/screens/scanner_screen.dart';
 import '../../features/offline_audit/presentation/screens/audit_form_screen.dart';
 import '../../features/offline_audit/presentation/screens/sync_screen.dart';
 import '../../features/report_dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/report_dashboard/presentation/screens/report_preview_screen.dart';
 import '../../features/report_dashboard/presentation/screens/reports_screen.dart';
 import '../widgets/fieldline_shell.dart';
 
@@ -84,6 +85,13 @@ GoRouter goRouter(Ref ref) {
             path: '/reports',
             name: 'reports',
             pageBuilder: (context, state) => _tab(state, const ReportsScreen()),
+            routes: [
+              GoRoute(
+                path: 'preview',
+                name: 'report-preview',
+                builder: (context, state) => const ReportPreviewScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: '/sync',

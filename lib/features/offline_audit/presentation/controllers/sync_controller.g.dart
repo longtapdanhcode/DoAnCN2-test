@@ -48,7 +48,7 @@ final class SyncControllerProvider
   SyncController create() => SyncController();
 }
 
-String _$syncControllerHash() => r'8fd545f3491273668411aa0d48aa5872b23a790c';
+String _$syncControllerHash() => r'baf0ea0a5ed2df69c12c89bfe59dfee865b5e692';
 
 /// Controller quản lý luồng đồng bộ bản ghi kiểm kê ngoại tuyến lên Cloud Supabase.
 ///

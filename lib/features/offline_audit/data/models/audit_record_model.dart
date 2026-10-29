@@ -50,6 +50,10 @@ class AuditRecordModel {
   /// Vai trò của người ký (ví dụ: "Kiểm kê viên").
   String? signerRole;
 
+  /// Tên tệp các ảnh minh chứng hiện trường (tối đa 3), lưu bởi
+  /// `EvidencePhotoStore`. `null` hoặc rỗng nếu phiếu không có ảnh.
+  List<String>? photoFiles;
+
   /// Thời điểm tạo bản ghi.
   DateTime? timestamp;
 
@@ -58,8 +62,30 @@ class AuditRecordModel {
   @ignore
   bool get isDraft => signatureBytes == null || signatureBytes!.isEmpty;
 
+  /// Phiếu có kèm ảnh minh chứng hiện trường.
+  @ignore
+  bool get hasPhotos => photoFiles?.isNotEmpty ?? false;
+
   /// Cờ đánh dấu bản ghi đã được đồng bộ lên Supabase hay chưa.
   ///
   /// Mặc định là `false` – nghĩa là chưa đồng bộ (offline-first).
   bool isSynced = false;
+
+  /// Bản sao với [id] mới, giữ **mọi** trường dữ liệu (dùng khi gán id tự tăng
+  /// lúc lưu phiếu mới). Thêm trường mới vào lớp này thì phải thêm ở đây.
+  AuditRecordModel copyWithId(int id) => AuditRecordModel(id)
+    ..scanCode = scanCode
+    ..aiDetectedLabel = aiDetectedLabel
+    ..assetName = assetName
+    ..quantity = quantity
+    ..area = area
+    ..location = location
+    ..condition = condition
+    ..notes = notes
+    ..signatureBytes = signatureBytes
+    ..signerName = signerName
+    ..signerRole = signerRole
+    ..photoFiles = photoFiles
+    ..timestamp = timestamp
+    ..isSynced = isSynced;
 }

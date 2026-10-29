@@ -18,6 +18,9 @@ import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/scre
 
 class _EmptyAuditRepository implements AuditRepository {
   @override
+  Future<void> deleteRecord(int id) async {}
+
+  @override
   Future<void> saveRecord(AuditRecordModel record) async {}
 
   @override
@@ -28,6 +31,10 @@ class _EmptyAuditRepository implements AuditRepository {
 }
 
 class _NoopSyncRepository implements SyncRepository {
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
   @override
   Future<void> syncPendingRecords(List<AuditRecordModel> records) async {}
 

@@ -57,4 +57,39 @@ void main() {
       expect(container.read(pendingSyncCountProvider), 1);
     });
   });
+
+  test('copyWithId giữ mọi trường (gồm ảnh minh chứng) khi gán id mới', () {
+    final original = AuditRecordModel(0, signatureBytes: [9, 9])
+      ..scanCode = 'TS-1'
+      ..aiDetectedLabel = 'Ghế'
+      ..assetName = 'Ghế xoay'
+      ..quantity = 4
+      ..area = 'Kho'
+      ..location = 'Kệ A3'
+      ..condition = 'check'
+      ..notes = 'ghi chú'
+      ..signerName = 'Hoàng An'
+      ..signerRole = 'Kiểm kê viên'
+      ..photoFiles = ['a.jpg', 'b.jpg']
+      ..timestamp = DateTime(2026, 10, 28, 9)
+      ..isSynced = true;
+
+    final copy = original.copyWithId(42);
+
+    expect(copy.id, 42);
+    expect(copy.scanCode, original.scanCode);
+    expect(copy.aiDetectedLabel, original.aiDetectedLabel);
+    expect(copy.assetName, original.assetName);
+    expect(copy.quantity, original.quantity);
+    expect(copy.area, original.area);
+    expect(copy.location, original.location);
+    expect(copy.condition, original.condition);
+    expect(copy.notes, original.notes);
+    expect(copy.signatureBytes, original.signatureBytes);
+    expect(copy.signerName, original.signerName);
+    expect(copy.signerRole, original.signerRole);
+    expect(copy.photoFiles, ['a.jpg', 'b.jpg']);
+    expect(copy.timestamp, original.timestamp);
+    expect(copy.isSynced, isTrue);
+  });
 }

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../helpers/evidence_fakes.dart';
+
+import 'package:field_inventory_edge_ai/features/offline_audit/data/evidence_photo_store.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositories/audit_repository.dart';
@@ -11,6 +15,9 @@ import 'package:field_inventory_edge_ai/features/offline_audit/presentation/cont
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/screens/audit_form_screen.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   final List<AuditRecordModel> records = [];
 
   @override
@@ -197,6 +204,115 @@ void main() {
       expect(find.text('Máy khoan Bosch GSB'), findsWidgets);
       expect(find.text('Kho trung tâm'), findsWidgets);
       expect(find.text('04'), findsWidgets);
+    });
+
+    group('ảnh minh chứng', () {
+      late MemoryEvidencePhotoStore store;
+      late FakeEvidencePhotoPicker picker;
+
+      Future<void> pumpForm(
+        WidgetTester tester, {
+        int? draftId,
+        List<AuditRecordModel> records = const [],
+      }) async {
+        tester.view.physicalSize = const Size(420, 2400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final router = GoRouter(
+          initialLocation: '/audit-form',
+          routes: [
+            GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+            GoRoute(
+              path: '/audit-form',
+              builder: (context, state) => Scaffold(
+                body: AuditFormScreen(
+                  initialScanCode: 'TS-DC-0142',
+                  draftId: draftId,
+                ),
+              ),
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              isarAuditRepositoryProvider.overrideWithValue(mockRepo),
+              evidencePhotoStoreProvider.overrideWithValue(store),
+              evidencePhotoPickerProvider.overrideWithValue(picker),
+              auditRecordsProvider.overrideWith((ref) => Stream.value(records)),
+            ],
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> addPhoto(WidgetTester tester) async {
+        await tester.tap(find.text('Thêm ảnh'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Chọn từ thư viện'));
+        await tester.pumpAndSettle();
+      }
+
+      setUp(() {
+        store = MemoryEvidencePhotoStore();
+        picker = FakeEvidencePhotoPicker(sampleJpeg());
+      });
+
+      testWidgets(
+        'thêm ảnh tới tối đa 3 rồi ẩn ô thêm; xoá thì thêm lại được',
+        (tester) async {
+          await pumpForm(tester);
+          expect(find.text('0/3 ảnh'), findsOneWidget);
+
+          await addPhoto(tester);
+          await addPhoto(tester);
+          await addPhoto(tester);
+          expect(find.text('3/3 ảnh'), findsOneWidget);
+          expect(find.text('Thêm ảnh'), findsNothing);
+          expect(store.files, hasLength(3));
+          expect(picker.requested, everyElement(EvidencePhotoSource.gallery));
+
+          // Xoá một ảnh vừa chụp: tệp cũng bị xoá, ô thêm ảnh hiện lại.
+          await tester.tap(find.bySemanticsLabel('Xoá ảnh').first);
+          await tester.pumpAndSettle();
+          expect(find.text('2/3 ảnh'), findsOneWidget);
+          expect(find.text('Thêm ảnh'), findsOneWidget);
+          expect(store.files, hasLength(2));
+        },
+      );
+
+      testWidgets('người dùng huỷ chọn ảnh thì không thêm gì', (tester) async {
+        picker.result = null;
+        await pumpForm(tester);
+        await addPhoto(tester);
+        expect(find.text('0/3 ảnh'), findsOneWidget);
+        expect(store.files, isEmpty);
+      });
+
+      testWidgets('thoát form mà không lưu thì dọn ảnh vừa chụp', (
+        tester,
+      ) async {
+        await pumpForm(tester);
+        await addPhoto(tester);
+        expect(store.files, hasLength(1));
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+        expect(store.files, isEmpty);
+      });
+
+      testWidgets('mở lại bản nháp: nạp ảnh đã đính kèm', (tester) async {
+        final name = await store.save(sampleJpeg());
+        final draft = AuditRecordModel(5)
+          ..scanCode = 'TS-DC-0142'
+          ..quantity = 1
+          ..photoFiles = [name]
+          ..timestamp = DateTime(2026, 10, 26);
+        await pumpForm(tester, draftId: 5, records: [draft]);
+        expect(find.text('1/3 ảnh'), findsOneWidget);
+        expect(find.byType(Image), findsWidgets);
+      });
     });
   });
 }

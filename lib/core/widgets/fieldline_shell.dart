@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/offline_audit/presentation/controllers/audit_records_provider.dart';
+import '../../features/offline_audit/presentation/controllers/auto_sync_controller.dart';
 import '../network/connectivity_provider.dart';
 import '../theme/fieldline_theme.dart';
 import '../utils/responsive_layout.dart';
@@ -85,6 +86,8 @@ class FieldlineShell extends ConsumerWidget {
     // Luôn theo dõi trạng thái mạng để checkOnline() đọc được ở mọi màn,
     // kể cả trên mobile (không có thanh trên hiển thị trạng thái).
     ref.watch(isOnlineProvider);
+    // Bộ tự đồng bộ chạy nền suốt lúc app mở (Card 24).
+    ref.watch(autoSyncProvider);
     if (ResponsiveLayout.isDesktop(context)) {
       return Scaffold(
         body: Row(

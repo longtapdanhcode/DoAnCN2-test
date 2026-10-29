@@ -98,4 +98,34 @@ void main() {
     expect(byName['Xưởng sản xuất A']!.progress, 1);
     expect(byName['Chưa có khu vực']!.done, 0);
   });
+
+  test('Chọn kỳ là tháng trước: chỉ tính phiếu của tháng đó', () {
+    final stats = AuditStats.compute(
+      assets: [
+        _asset('A-1', area: 'Kho'),
+        _asset('A-2', area: 'Kho'),
+      ],
+      records: [
+        _record('A-1', 1, DateTime(2026, 9, 15)),
+        _record('A-2', 1, DateTime(2026, 10, 20)),
+      ],
+      now: _now,
+      period: DateTime(2026, 9),
+    );
+    expect(stats.periodLabel, 'Tháng 9/2026');
+    expect(stats.auditedAssets, 1);
+    expect(stats.auditsInPeriod, 1);
+    // "Hôm nay" vẫn tính theo ngày hiện tại, không theo kỳ chọn.
+    expect(stats.auditsToday, 0);
+  });
+
+  test('availablePeriods: tháng có phiếu + tháng hiện tại, mới nhất trước', () {
+    final months = AuditStats.availablePeriods([
+      _record('A', 1, DateTime(2026, 8, 3)),
+      _record('B', 1, DateTime(2026, 8, 25)),
+      _record('C', 1, DateTime(2026, 5, 1)),
+    ], _now);
+    expect(months, [DateTime(2026, 10), DateTime(2026, 8), DateTime(2026, 5)]);
+    expect(AuditStats.labelOf(months.first), 'Tháng 10/2026');
+  });
 }

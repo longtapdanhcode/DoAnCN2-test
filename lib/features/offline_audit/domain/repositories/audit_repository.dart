@@ -13,6 +13,9 @@ abstract class AuditRepository {
   /// Lấy toàn bộ danh sách bản ghi kiểm kê đã lưu.
   Future<List<AuditRecordModel>> getAllRecords();
 
+  /// Xoá một bản ghi theo [id] khỏi máy.
+  Future<void> deleteRecord(int id);
+
   /// Tạo và xuất file PDF báo cáo kiểm kê hiện trường.
   Future<Uint8List> exportPdfReport();
 }

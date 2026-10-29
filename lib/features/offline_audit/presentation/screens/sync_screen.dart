@@ -14,7 +14,9 @@ import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/s
 import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
 
 import '../audit_actions.dart';
+import '../../data/sync_settings_store.dart';
 import '../controllers/audit_records_provider.dart';
+import '../controllers/auto_sync_controller.dart';
 import '../controllers/sync_controller.dart';
 
 /// Màn hình Đồng bộ dữ liệu (Figma 07 / M05).
@@ -27,8 +29,31 @@ class SyncScreen extends ConsumerStatefulWidget {
 
 class _SyncScreenState extends ConsumerState<SyncScreen> {
   bool _showHistory = false;
-  bool _autoSync = true;
-  bool _wifiOnlyPhotos = false;
+
+  SyncSettings get _settings =>
+      ref.watch(syncSettingsProvider).value ?? const SyncSettings();
+
+  SyncSettingsNotifier get _settingsNotifier =>
+      ref.read(syncSettingsProvider.notifier);
+
+  /// Một dòng mô tả kết quả tự đồng bộ gần nhất.
+  String _autoSyncNote() {
+    if (!_settings.autoSync) {
+      return 'Đang tắt: phiếu chỉ gửi khi bấm "Đồng bộ ngay".';
+    }
+    final status = ref.watch(autoSyncStatusProvider);
+    final parts = <String>[
+      if (status.failures > 0 && status.nextRetryAt != null)
+        'Lỗi lần gần nhất, tự thử lại lúc ${flTime(status.nextRetryAt!)}.'
+      else if (status.lastSyncedAt != null)
+        'Đã tự gửi ${status.lastCount} phiếu lúc ${flTime(status.lastSyncedAt!)}.'
+      else
+        'Phiếu đã ký tự gửi lên khi có mạng.',
+      if (status.waitingForWifi > 0)
+        '${status.waitingForWifi} phiếu có ảnh chờ Wi-Fi.',
+    ];
+    return parts.join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,18 +235,23 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
               const Gap(14),
               _SwitchRow(
                 label: 'Tự đồng bộ khi có mạng',
-                value: _autoSync,
-                onChanged: (v) => setState(() => _autoSync = v),
+                value: _settings.autoSync,
+                onChanged: _settingsNotifier.setAutoSync,
               ),
               const Divider(),
               _SwitchRow(
                 label: 'Chỉ tải ảnh qua Wi-Fi',
-                value: _wifiOnlyPhotos,
-                onChanged: (v) => setState(() => _wifiOnlyPhotos = v),
+                value: _settings.wifiOnlyPhotos,
+                onChanged: _settingsNotifier.setWifiOnlyPhotos,
               ),
               const Gap(18),
+              Text(
+                _autoSyncNote(),
+                style: const TextStyle(fontSize: 11, color: FlColors.muted),
+              ),
+              const Gap(6),
               const Text(
-                'Ảnh và chữ ký đi cùng từng phiếu.',
+                'Ảnh và chữ ký đi cùng từng phiếu. Bấm "Đồng bộ ngay" sẽ gửi tất cả, kể cả ảnh.',
                 style: TextStyle(fontSize: 11, color: FlColors.muted),
               ),
             ],
@@ -528,17 +558,25 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       ),
                     ),
                     const Gap(8),
-                    const Text(
-                      'Phiếu, ảnh và chữ ký sẽ được gửi lên hệ thống. Trạng thái được cập nhật sau khi hoàn tất.',
-                      style: TextStyle(fontSize: 12, color: FlColors.muted),
+                    Text(
+                      _autoSyncNote(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: FlColors.muted,
+                      ),
                     ),
                     const Gap(4),
                     Align(
                       alignment: Alignment.centerRight,
                       child: Switch(
-                        value: _autoSync,
-                        onChanged: (v) => setState(() => _autoSync = v),
+                        value: _settings.autoSync,
+                        onChanged: _settingsNotifier.setAutoSync,
                       ),
+                    ),
+                    _SwitchRow(
+                      label: 'Chỉ tải ảnh qua Wi-Fi',
+                      value: _settings.wifiOnlyPhotos,
+                      onChanged: _settingsNotifier.setWifiOnlyPhotos,
                     ),
                   ],
                 ),

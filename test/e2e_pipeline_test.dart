@@ -19,6 +19,9 @@ import 'package:field_inventory_edge_ai/features/offline_audit/presentation/cont
 
 /// Bộ lưu trữ giả lập Isar Local Database chuẩn Clean Architecture & Offline-First.
 class InMemoryIsarAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   final Map<int, AuditRecordModel> _records = {};
   int _autoIncrementId = 1;
 
@@ -58,6 +61,10 @@ class InMemoryIsarAuditRepository implements AuditRepository {
 
 /// Giả lập Supabase Cloud Sync Repository để xác thực tải chữ ký và ingestion.
 class E2ESupabaseSyncRepository implements SyncRepository {
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
   final InMemoryIsarAuditRepository localRepository;
   final List<CloudAuditRecordModel> cloudStorage = [];
 

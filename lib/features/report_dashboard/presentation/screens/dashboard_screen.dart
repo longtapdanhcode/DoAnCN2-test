@@ -8,6 +8,7 @@ import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_form_controller.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
 
 import '../../domain/audit_stats.dart';
@@ -37,6 +38,46 @@ String auditTitle(AuditRecordModel r) =>
 /// Mở lại bản nháp để ký xác nhận và hoàn tất (cập nhật chính phiếu đó).
 void resumeDraft(BuildContext context, AuditRecordModel draft) {
   context.push('/audit-form', extra: {'draftId': draft.id});
+}
+
+/// Hỏi xác nhận rồi xoá một bản nháp chưa ký khỏi máy.
+Future<void> confirmDeleteDraft(
+  BuildContext context,
+  WidgetRef ref,
+  AuditRecordModel draft,
+) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Xoá bản nháp?'),
+      content: Text(
+        'Bản nháp ${auditCode(draft)} (${auditTitle(draft)}) sẽ bị xoá khỏi '
+        'thiết bị và không thể khôi phục.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: FlColors.danger),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Xoá'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  final deleted = await ref
+      .read(auditFormControllerProvider.notifier)
+      .deleteDraft(draft.id);
+  if (context.mounted) {
+    showFlSnack(
+      context,
+      deleted ? 'Đã xoá bản nháp.' : 'Không xoá được bản nháp.',
+      tone: deleted ? FlTone.success : FlTone.danger,
+    );
+  }
 }
 
 /// Giao diện Tổng quan cho desktop / web.
@@ -323,13 +364,13 @@ class _EdgeAiCard extends StatelessWidget {
   }
 }
 
-class _RecentAuditsCard extends StatelessWidget {
+class _RecentAuditsCard extends ConsumerWidget {
   const _RecentAuditsCard({required this.records});
 
   final List<AuditRecordModel> records;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FlCard(
       padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
       child: Column(
@@ -412,16 +453,33 @@ class _RecentAuditsCard extends StatelessWidget {
                     ),
                     Expanded(
                       flex: 3,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: StatusPill(
-                          label: r.isDraft
-                              ? 'Bản nháp • chưa ký'
-                              : (r.isSynced ? 'Đã đồng bộ' : 'Chờ đồng bộ'),
-                          tone: r.isDraft
-                              ? FlTone.neutral
-                              : (r.isSynced ? FlTone.success : FlTone.warning),
-                        ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: StatusPill(
+                              label: r.isDraft
+                                  ? 'Bản nháp • chưa ký'
+                                  : (r.isSynced ? 'Đã đồng bộ' : 'Chờ đồng bộ'),
+                              tone: r.isDraft
+                                  ? FlTone.neutral
+                                  : (r.isSynced
+                                        ? FlTone.success
+                                        : FlTone.warning),
+                            ),
+                          ),
+                          if (r.isDraft)
+                            IconButton(
+                              tooltip: 'Xoá bản nháp',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () =>
+                                  confirmDeleteDraft(context, ref, r),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: FlColors.muted,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ],
@@ -790,13 +848,13 @@ class _MobileStat extends StatelessWidget {
   }
 }
 
-class _MobileRecentAudit extends StatelessWidget {
+class _MobileRecentAudit extends ConsumerWidget {
   const _MobileRecentAudit({required this.record});
 
   final AuditRecordModel record;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = record.timestamp ?? DateTime.now();
     final card = FlCard(
       padding: const EdgeInsets.all(14),
@@ -843,6 +901,15 @@ class _MobileRecentAudit extends StatelessWidget {
               ],
             ),
           ),
+          if (record.isDraft)
+            IconButton(
+              tooltip: 'Xoá bản nháp',
+              onPressed: () => confirmDeleteDraft(context, ref, record),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: FlColors.muted,
+              ),
+            ),
         ],
       ),
     );

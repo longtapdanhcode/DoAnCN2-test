@@ -10,6 +10,7 @@ import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/cont
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/supabase_sync_repository_impl.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/sync_settings_store.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositories/audit_repository.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositories/sync_repository.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
@@ -18,6 +19,9 @@ import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/s
 import 'package:field_inventory_edge_ai/features/report_dashboard/presentation/screens/reports_screen.dart';
 
 class MockAuditRepository implements AuditRepository {
+  @override
+  Future<void> deleteRecord(int id) async {}
+
   bool exportCalled = false;
   List<AuditRecordModel> records = [];
 
@@ -39,6 +43,10 @@ class MockAuditRepository implements AuditRepository {
 }
 
 class MockSyncRepository implements SyncRepository {
+  @override
+  Future<String> uploadEvidencePhoto(List<int> bytes) async =>
+      'https://example.test/evidence.jpg';
+
   bool syncCalled = false;
 
   @override
@@ -51,6 +59,16 @@ class MockSyncRepository implements SyncRepository {
       r.isSynced = true;
     }
   }
+}
+
+class MemorySyncSettingsStore implements SyncSettingsStore {
+  SyncSettings saved = const SyncSettings();
+
+  @override
+  Future<SyncSettings> load() async => saved;
+
+  @override
+  Future<void> save(SyncSettings settings) async => saved = settings;
 }
 
 class FakeAssetCatalogRepository implements AssetCatalogRepository {
@@ -77,8 +95,10 @@ void main() {
     late MockAuditRepository mockRepo;
     late MockSyncRepository mockSyncRepo;
     late FakeAssetCatalogRepository catalogRepo;
+    late MemorySyncSettingsStore settingsStore;
 
     setUp(() {
+      settingsStore = MemorySyncSettingsStore();
       mockRepo = MockAuditRepository();
       mockSyncRepo = MockSyncRepository();
       catalogRepo = FakeAssetCatalogRepository();
@@ -105,12 +125,44 @@ void main() {
             ),
             isOnlineProvider.overrideWith((ref) => Stream.value(online)),
             assetCatalogRepositoryProvider.overrideWithValue(catalogRepo),
+            syncSettingsStoreProvider.overrideWithValue(settingsStore),
           ],
           child: MaterialApp(home: Scaffold(body: screen)),
         ),
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('Bản nháp hiện ở mục riêng và xoá được sau khi xác nhận', (
+      tester,
+    ) async {
+      mockRepo.records = [
+        AuditRecordModel(3)
+          ..scanCode = 'NHAP-01'
+          ..assetName = 'Máy bơm nháp'
+          ..quantity = 1
+          ..timestamp = DateTime.now(),
+      ];
+
+      await pumpScreen(
+        tester,
+        const DashboardScreen(),
+        screenSize: const Size(420, 2400),
+      );
+
+      expect(find.text('BẢN NHÁP CHỜ KÝ'), findsOneWidget);
+      expect(find.textContaining('Bản nháp, chạm để ký'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Xoá bản nháp'));
+      await tester.pumpAndSettle();
+      expect(find.text('Xoá bản nháp?'), findsOneWidget);
+
+      // Huỷ thì giữ nguyên bản nháp.
+      await tester.tap(find.text('Huỷ'));
+      await tester.pumpAndSettle();
+      expect(find.text('Xoá bản nháp?'), findsNothing);
+      expect(mockRepo.records, hasLength(1));
+    });
 
     testWidgets('Mobile dashboard shows pending records', (tester) async {
       mockRepo.records = [
@@ -180,6 +232,27 @@ void main() {
       );
     });
 
+    testWidgets('Tắt tự đồng bộ được lưu lại và báo rõ trên màn Đồng bộ', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        const SyncScreen(),
+        screenSize: const Size(1440, 1000),
+      );
+
+      expect(find.text('Phiếu đã ký tự gửi lên khi có mạng.'), findsOneWidget);
+
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+
+      expect(settingsStore.saved.autoSync, isFalse);
+      expect(
+        find.text('Đang tắt: phiếu chỉ gửi khi bấm "Đồng bộ ngay".'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('Offline: sync is skipped and user is told why', (
       tester,
     ) async {
@@ -224,9 +297,10 @@ void main() {
       );
 
       await tester.tap(find.text('Xuất báo cáo PDF'));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      expect(mockRepo.exportCalled, isTrue);
+      // Xuất theo kỳ đang chọn: báo đang tạo PDF (hộp chia sẻ không có trong test).
+      expect(find.text('Đang tạo báo cáo PDF...'), findsOneWidget);
     });
   });
 }
