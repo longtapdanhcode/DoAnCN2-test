@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/repositories/scanner_repository_impl.dart';
-import '../../data/repositories/tflite_vision_repository_impl.dart';
+import '../../data/repositories/vision_ai_providers.dart';
 import '../../domain/entities/scan_result.dart';
 import '../../domain/entities/vision_analysis.dart';
 import '../../domain/repositories/scanner_repository.dart';

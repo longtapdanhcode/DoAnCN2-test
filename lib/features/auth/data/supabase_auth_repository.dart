@@ -174,6 +174,7 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   Future<void> _loadCachedProfile() async {
+    if (kIsWeb) return; // web luôn có mạng, không cần bản lưu trên máy
     try {
       final file = await _cacheFile();
       if (!await file.exists()) return;
@@ -191,6 +192,7 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   Future<void> _saveCachedProfile(AppUser user) async {
+    if (kIsWeb) return; // web luôn có mạng, không cần bản lưu trên máy
     try {
       final file = await _cacheFile();
       await file.writeAsString(
@@ -207,6 +209,7 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   Future<void> _deleteCachedProfile() async {
+    if (kIsWeb) return; // web luôn có mạng, không cần bản lưu trên máy
     try {
       final file = await _cacheFile();
       if (await file.exists()) await file.delete();

@@ -54,13 +54,19 @@ class AuditRecordModel {
   /// `EvidencePhotoStore`. `null` hoặc rỗng nếu phiếu không có ảnh.
   List<String>? photoFiles;
 
+  /// Đường dẫn ảnh chữ ký trên Supabase Storage. Bản web đọc phiếu thẳng từ
+  /// đám mây nên chỉ có đường dẫn, chưa có [signatureBytes].
+  String? signatureUrl;
+
   /// Thời điểm tạo bản ghi.
   DateTime? timestamp;
 
   /// Bản nháp = phiếu chưa có chữ ký xác nhận. Bản nháp chỉ nằm trên máy:
   /// không đồng bộ, không vào báo cáo và chưa tính là đã kiểm kê.
   @ignore
-  bool get isDraft => signatureBytes == null || signatureBytes!.isEmpty;
+  bool get isDraft =>
+      (signatureBytes == null || signatureBytes!.isEmpty) &&
+      (signatureUrl == null || signatureUrl!.isEmpty);
 
   /// Phiếu có kèm ảnh minh chứng hiện trường.
   @ignore
@@ -86,6 +92,7 @@ class AuditRecordModel {
     ..signerName = signerName
     ..signerRole = signerRole
     ..photoFiles = photoFiles
+    ..signatureUrl = signatureUrl
     ..timestamp = timestamp
     ..isSynced = isSynced;
 }

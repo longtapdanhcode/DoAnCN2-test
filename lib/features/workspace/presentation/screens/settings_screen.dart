@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
 import 'package:field_inventory_edge_ai/core/ai_pipeline/ai_config.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
@@ -24,11 +25,13 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Bản web không quét và không lưu ngoại tuyến: bỏ phần đồng bộ và AI.
+    final canScan = ref.watch(appModeProvider).canScan;
     final sections = <Widget>[
       const _AccountSection(),
       const _WorkspaceSection(),
-      const _SyncSection(),
-      const _AiSection(),
+      if (canScan) const _SyncSection(),
+      if (canScan) const _AiSection(),
       const _DataSection(),
     ];
 
@@ -264,6 +267,20 @@ class _DataSection extends ConsumerWidget {
     final pending = ref.watch(pendingSyncCountProvider);
     final assets = ref.watch(assetsProvider).value?.length ?? 0;
     final conflicts = ref.watch(assetConflictsProvider).length;
+    if (!ref.watch(appModeProvider).canScan) {
+      return _Section(
+        title: 'Dữ liệu trên đám mây',
+        children: [
+          _Info(label: 'Phiếu đã ký', value: '$signed'),
+          _Info(label: 'Tài sản trong danh mục', value: '$assets'),
+          const Gap(8),
+          const Text(
+            'Bản web đọc thẳng từ Supabase, tự tải lại mỗi phút.',
+            style: TextStyle(fontSize: 11, color: FlColors.muted),
+          ),
+        ],
+      );
+    }
     return _Section(
       title: 'Dữ liệu trên máy',
       children: [

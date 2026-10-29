@@ -10,6 +10,8 @@ import '../../features/offline_audit/presentation/controllers/audit_records_prov
 import '../../features/workspace/data/workspace_settings.dart';
 import '../../features/offline_audit/presentation/controllers/auto_sync_controller.dart';
 import '../network/connectivity_provider.dart';
+import '../platform/app_mode.dart';
+import '../../features/cloud_console/cloud_refresh.dart';
 import '../theme/fieldline_theme.dart';
 import '../utils/responsive_layout.dart';
 import 'fieldline_widgets.dart';
@@ -91,8 +93,9 @@ class FieldlineShell extends ConsumerWidget {
     // Luôn theo dõi trạng thái mạng để checkOnline() đọc được ở mọi màn,
     // kể cả trên mobile (không có thanh trên hiển thị trạng thái).
     ref.watch(isOnlineProvider);
-    // Bộ tự đồng bộ chạy nền suốt lúc app mở (Card 24).
-    ref.watch(autoSyncProvider);
+    // Bộ tự đồng bộ chạy nền suốt lúc app mở (Card 24). Bản web đọc thẳng
+    // đám mây nên không có gì để đồng bộ.
+    if (ref.watch(appModeProvider).canScan) ref.watch(autoSyncProvider);
     if (ResponsiveLayout.isDesktop(context)) {
       return Scaffold(
         body: Row(
@@ -132,6 +135,7 @@ class _Sidebar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingSyncCountProvider);
     final workspace = ref.watch(workspaceProvider);
+    final canScan = ref.watch(appModeProvider).canScan;
 
     return Container(
       width: 232,
@@ -162,22 +166,29 @@ class _Sidebar extends ConsumerWidget {
                     ),
                   ),
                   const Gap(12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'FIELDLINE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
+                  const Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'FIELDLINE',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'INVENTORY & EDGE AI',
-                        style: TextStyle(color: Color(0xFF82A5AE), fontSize: 8),
-                      ),
-                    ],
+                        Text(
+                          'INVENTORY & EDGE AI',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Color(0xFF82A5AE),
+                            fontSize: 8,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -220,13 +231,14 @@ class _Sidebar extends ConsumerWidget {
                   children: [
                     const _SidebarLabel('Quản lý hiện trường'),
                     for (final item in _fieldItems)
-                      _SidebarTile(
-                        item: item,
-                        active: item.isActive(location),
-                        badge: item.route == '/sync' && pending > 0
-                            ? '$pending'
-                            : null,
-                      ),
+                      if (canScan || !isFieldOnlyPath(item.route ?? ''))
+                        _SidebarTile(
+                          item: item,
+                          active: item.isActive(location),
+                          badge: item.route == '/sync' && pending > 0
+                              ? '$pending'
+                              : null,
+                        ),
                     const Gap(20),
                     const _SidebarLabel('Không gian làm việc'),
                     for (final item in _workspaceItems)
@@ -255,19 +267,26 @@ class _Sidebar extends ConsumerWidget {
                           ),
                         ),
                         const Gap(8),
-                        const Text(
-                          'Sẵn sàng ngoại tuyến',
-                          style: TextStyle(
-                            color: Color(0xFFC9EEE6),
-                            fontSize: 12,
+                        Flexible(
+                          child: Text(
+                            canScan
+                                ? 'Sẵn sàng ngoại tuyến'
+                                : 'Dữ liệu đám mây',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFC9EEE6),
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const Gap(8),
-                    const Text(
-                      'Dữ liệu được lưu trên máy.\nTự đồng bộ khi có kết nối.',
-                      style: TextStyle(
+                    Text(
+                      canScan
+                          ? 'Dữ liệu được lưu trên máy.\nTự đồng bộ khi có kết nối.'
+                          : 'Phiếu do điện thoại gửi lên.\nQuét và lập phiếu bằng app điện thoại.',
+                      style: const TextStyle(
                         color: Color(0xFF8EAEB8),
                         fontSize: 11,
                         height: 1.5,
@@ -526,6 +545,18 @@ class _TopBar extends ConsumerWidget {
               color: online ? FlColors.primary : FlColors.warning,
             ),
           ),
+          if (!ref.watch(appModeProvider).canScan) ...[
+            const Gap(20),
+            IconButton(
+              tooltip: 'Tải lại dữ liệu đám mây',
+              onPressed: () => refreshCloudData(context, ref),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                size: 20,
+                color: FlColors.muted,
+              ),
+            ),
+          ],
           const Gap(40),
           Stack(
             clipBehavior: Clip.none,
@@ -563,13 +594,13 @@ class _TopBar extends ConsumerWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
+class _BottomNav extends ConsumerWidget {
   const _BottomNav({required this.location});
 
   final String location;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: const BoxDecoration(
         color: FlColors.surface,
@@ -582,12 +613,14 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             children: [
               for (final item in _mobileItems)
-                Expanded(
-                  child: _BottomNavItem(
-                    item: item,
-                    active: item.isActive(location),
+                if (ref.watch(appModeProvider).canScan ||
+                    !isFieldOnlyPath(item.route ?? ''))
+                  Expanded(
+                    child: _BottomNavItem(
+                      item: item,
+                      active: item.isActive(location),
+                    ),
                   ),
-                ),
             ],
           ),
         ),

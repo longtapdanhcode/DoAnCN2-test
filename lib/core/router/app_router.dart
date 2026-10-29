@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/screens/asset_conflicts_screen.dart';
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/screens/auth_screens.dart';
 import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/locations_screen.dart';
@@ -30,6 +31,7 @@ const _authPaths = {'/login', '/register'};
 @riverpod
 GoRouter goRouter(Ref ref) {
   final auth = ref.watch(authRepositoryProvider);
+  final mode = ref.watch(appModeProvider);
 
   // Đăng nhập/đăng xuất thì tính lại điều hướng (Card 26).
   final authChanged = ValueNotifier(0);
@@ -46,6 +48,8 @@ GoRouter goRouter(Ref ref) {
       final atAuth = _authPaths.contains(state.uri.path);
       if (!signedIn && !atAuth) return '/login';
       if (signedIn && atAuth) return '/';
+      // Bản web không quét, lập phiếu hay đồng bộ ngoại tuyến (Card 28).
+      if (!mode.canScan && isFieldOnlyPath(state.uri.path)) return '/';
       return null;
     },
     routes: [

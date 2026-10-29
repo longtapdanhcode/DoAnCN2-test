@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
 import 'package:field_inventory_edge_ai/core/network/connectivity_provider.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
@@ -163,6 +164,8 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Bản web không lập phiếu (Card 28): chỉ sửa danh mục.
+    final canScan = ref.watch(appModeProvider).canScan;
     // Theo dõi để checkOnline() có giá trị khi bấm Lưu.
     ref.watch(isOnlineProvider);
     if (_loading) {
@@ -241,7 +244,7 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
                                 : context.go('/assets'),
                       child: const Text('Huỷ'),
                     ),
-                    if (!widget.isNew) ...[
+                    if (!widget.isNew && canScan) ...[
                       const Gap(12),
                       OutlinedButton.icon(
                         onPressed: _saving ? null : _startAudit,
@@ -271,7 +274,7 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
           : MobilePage(
               title: title,
               showBack: true,
-              trailing: widget.isNew
+              trailing: widget.isNew || !canScan
                   ? null
                   : TextButton(
                       onPressed: _saving ? null : _startAudit,

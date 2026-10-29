@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/prefs_json_store.dart';
+
 /// Ca làm việc hiển thị ở đầu Tổng quan.
 const workShifts = ['Ca sáng', 'Ca chiều', 'Ca đêm', 'Hành chính'];
 
@@ -79,8 +81,26 @@ class FileWorkspaceSettingsStore implements WorkspaceSettingsStore {
   }
 }
 
+/// Bản web: lưu trong localStorage của trình duyệt.
+class PrefsWorkspaceSettingsStore implements WorkspaceSettingsStore {
+  static const _store = PrefsJsonStore('workspace_settings');
+
+  @override
+  Future<WorkspaceSettings> load() async {
+    final json = await _store.read();
+    return json == null
+        ? const WorkspaceSettings()
+        : WorkspaceSettings.fromJson(json);
+  }
+
+  @override
+  Future<void> save(WorkspaceSettings settings) =>
+      _store.write(settings.toJson());
+}
+
 final workspaceSettingsStoreProvider = Provider<WorkspaceSettingsStore>(
-  (ref) => FileWorkspaceSettingsStore(),
+  (ref) =>
+      kIsWeb ? PrefsWorkspaceSettingsStore() : FileWorkspaceSettingsStore(),
 );
 
 class WorkspaceSettingsNotifier extends AsyncNotifier<WorkspaceSettings> {
