@@ -10,6 +10,7 @@ import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/cont
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/isar_audit_repository_impl.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/repositories/supabase_sync_repository_impl.dart';
+import 'package:field_inventory_edge_ai/features/offline_audit/data/sync_settings_store.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositories/audit_repository.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/domain/repositories/sync_repository.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
@@ -60,6 +61,16 @@ class MockSyncRepository implements SyncRepository {
   }
 }
 
+class MemorySyncSettingsStore implements SyncSettingsStore {
+  SyncSettings saved = const SyncSettings();
+
+  @override
+  Future<SyncSettings> load() async => saved;
+
+  @override
+  Future<void> save(SyncSettings settings) async => saved = settings;
+}
+
 class FakeAssetCatalogRepository implements AssetCatalogRepository {
   int syncCalls = 0;
 
@@ -84,8 +95,10 @@ void main() {
     late MockAuditRepository mockRepo;
     late MockSyncRepository mockSyncRepo;
     late FakeAssetCatalogRepository catalogRepo;
+    late MemorySyncSettingsStore settingsStore;
 
     setUp(() {
+      settingsStore = MemorySyncSettingsStore();
       mockRepo = MockAuditRepository();
       mockSyncRepo = MockSyncRepository();
       catalogRepo = FakeAssetCatalogRepository();
@@ -112,6 +125,7 @@ void main() {
             ),
             isOnlineProvider.overrideWith((ref) => Stream.value(online)),
             assetCatalogRepositoryProvider.overrideWithValue(catalogRepo),
+            syncSettingsStoreProvider.overrideWithValue(settingsStore),
           ],
           child: MaterialApp(home: Scaffold(body: screen)),
         ),
@@ -214,6 +228,27 @@ void main() {
       expect(catalogRepo.syncCalls, 1);
       expect(
         find.text('Đã đồng bộ 1 phiếu lên đám mây. Danh mục: 3 tài sản.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Tắt tự đồng bộ được lưu lại và báo rõ trên màn Đồng bộ', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        const SyncScreen(),
+        screenSize: const Size(1440, 1000),
+      );
+
+      expect(find.text('Phiếu đã ký tự gửi lên khi có mạng.'), findsOneWidget);
+
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+
+      expect(settingsStore.saved.autoSync, isFalse);
+      expect(
+        find.text('Đang tắt: phiếu chỉ gửi khi bấm "Đồng bộ ngay".'),
         findsOneWidget,
       );
     });

@@ -62,6 +62,10 @@ class AuditRecordModel {
   @ignore
   bool get isDraft => signatureBytes == null || signatureBytes!.isEmpty;
 
+  /// Phiếu có kèm ảnh minh chứng hiện trường.
+  @ignore
+  bool get hasPhotos => photoFiles?.isNotEmpty ?? false;
+
   /// Cờ đánh dấu bản ghi đã được đồng bộ lên Supabase hay chưa.
   ///
   /// Mặc định là `false` – nghĩa là chưa đồng bộ (offline-first).

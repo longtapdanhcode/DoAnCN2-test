@@ -21,7 +21,10 @@ class SyncController extends _$SyncController {
   /// Đồng bộ tất cả bản ghi chưa được đồng bộ (`isSynced == false`) lên Supabase.
   ///
   /// Trả về số lượng bản ghi đã đồng bộ thành công.
-  Future<int> syncAll() async {
+  ///
+  /// [skipRecordsWithPhotos] để lại các phiếu có ảnh minh chứng trong hàng chờ
+  /// (tự đồng bộ trên mạng di động khi bật "Chỉ tải ảnh qua Wi-Fi").
+  Future<int> syncAll({bool skipRecordsWithPhotos = false}) async {
     state = const AsyncLoading();
 
     try {
@@ -29,6 +32,7 @@ class SyncController extends _$SyncController {
       final allRecords = await auditRepo.getAllRecords();
       final pendingRecords = allRecords
           .where((r) => !r.isSynced && !r.isDraft)
+          .where((r) => !skipRecordsWithPhotos || !r.hasPhotos)
           .toList();
 
       if (pendingRecords.isEmpty) {
