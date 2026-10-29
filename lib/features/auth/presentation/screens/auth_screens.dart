@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
 
@@ -261,7 +262,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 }
 
-class _AuthLayout extends StatelessWidget {
+class _AuthLayout extends ConsumerWidget {
   const _AuthLayout({
     required this.title,
     required this.subtitle,
@@ -273,7 +274,7 @@ class _AuthLayout extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -352,10 +353,15 @@ class _AuthLayout extends StatelessWidget {
                       ),
                     ),
                     const Gap(16),
-                    const Text(
-                      'Cần có mạng ở lần đăng nhập đầu. Sau đó app vẫn dùng được khi ngoại tuyến.',
+                    Text(
+                      ref.watch(appModeProvider).canScan
+                          ? 'Cần có mạng ở lần đăng nhập đầu. Sau đó app vẫn dùng được khi ngoại tuyến.'
+                          : 'Bản web quản lý dữ liệu trên đám mây. Quét và lập phiếu bằng app điện thoại.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF8EAEB8), fontSize: 12),
+                      style: const TextStyle(
+                        color: Color(0xFF8EAEB8),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
