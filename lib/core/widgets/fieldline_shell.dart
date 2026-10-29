@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/account_sheet.dart';
+import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/offline_audit/presentation/controllers/audit_records_provider.dart';
 import '../../features/offline_audit/presentation/controllers/auto_sync_controller.dart';
 import '../network/connectivity_provider.dart';
@@ -265,47 +267,66 @@ class _Sidebar extends ConsumerWidget {
               ),
               const Gap(16),
               const Divider(color: FlColors.sidebarCard),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(4, 14, 4, 18),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: FlColors.avatar,
-                      child: Text(
-                        'HA',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Gap(12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hoàng An',
-                          style: TextStyle(
-                            color: Color(0xFFEAF1F4),
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          'Kiểm kê viên',
-                          style: TextStyle(
-                            color: Color(0xFF91ABB6),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              const _SidebarAccount(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tài khoản đang đăng nhập ở chân sidebar; chạm để xem và đăng xuất.
+class _SidebarAccount extends ConsumerWidget {
+  const _SidebarAccount();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(signedInUserProvider);
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => showAccountSheet(context, ref),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 14, 4, 18),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: FlColors.avatar,
+              child: Text(
+                user?.initials ?? '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Gap(12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user?.displayName ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFEAF1F4),
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    user?.role.label ?? '',
+                    style: const TextStyle(
+                      color: Color(0xFF91ABB6),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -518,18 +539,7 @@ class _TopBar extends ConsumerWidget {
             ],
           ),
           const Gap(28),
-          const CircleAvatar(
-            radius: 17,
-            backgroundColor: FlColors.primaryTint,
-            child: Text(
-              'HA',
-              style: TextStyle(
-                color: FlColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
+          const AccountAvatar(),
           const Gap(10),
           const Icon(
             Icons.keyboard_arrow_down_rounded,

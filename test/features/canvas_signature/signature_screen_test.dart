@@ -1,9 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signature/signature.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 import 'package:field_inventory_edge_ai/features/canvas_signature/presentation/screens/signature_screen.dart';
+
+import '../../helpers/auth_fakes.dart';
+
+/// Đăng nhập sẵn bằng tài khoản Hoàng An (Kiểm kê viên).
+Widget signedIn(Widget child) => ProviderScope(
+  overrides: [
+    authRepositoryProvider.overrideWithValue(
+      FakeAuthRepository(signedInAs: testUser),
+    ),
+  ],
+  child: child,
+);
 
 /// Kích thước khung web 1440×1000 của Figma (bố cục desktop).
 void useDesktopView(WidgetTester tester) {
@@ -15,18 +29,20 @@ void useDesktopView(WidgetTester tester) {
 void main() {
   group('SignatureScreen Widget Tests', () {
     Widget buildTestWidget() {
-      return MaterialApp(
-        home: Scaffold(
-          body: SignatureScreen(
-            summary: AuditSummary(
-              scanCode: 'TS-DC-0142',
-              label: 'Động cơ điện',
-              name: '',
-              area: 'Xưởng sản xuất A',
-              quantity: 8,
-              condition: 'Hoạt động tốt',
-              conditionTone: FlTone.success,
-              createdAt: DateTime(2026, 10, 22, 9, 44),
+      return signedIn(
+        MaterialApp(
+          home: Scaffold(
+            body: SignatureScreen(
+              summary: AuditSummary(
+                scanCode: 'TS-DC-0142',
+                label: 'Động cơ điện',
+                name: '',
+                area: 'Xưởng sản xuất A',
+                quantity: 8,
+                condition: 'Hoạt động tốt',
+                conditionTone: FlTone.success,
+                createdAt: DateTime(2026, 10, 22, 9, 44),
+              ),
             ),
           ),
         ),
@@ -103,7 +119,9 @@ void main() {
           ),
         ],
       );
-      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpWidget(
+        signedIn(MaterialApp.router(routerConfig: router)),
+      );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 

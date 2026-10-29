@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
@@ -455,7 +456,7 @@ class _ReportListItem extends StatelessWidget {
 }
 
 /// Trang giấy A4 xem trước biên bản kiểm kê.
-class _ReportPaper extends StatelessWidget {
+class _ReportPaper extends ConsumerWidget {
   const _ReportPaper({
     required this.areas,
     required this.period,
@@ -467,7 +468,8 @@ class _ReportPaper extends StatelessWidget {
   final String scope;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final author = ref.watch(signedInUserProvider)?.displayName ?? '';
     const small = TextStyle(fontSize: 10, color: FlColors.muted);
     const cell = TextStyle(fontSize: 10, color: FlColors.ink);
     final planned = areas.fold(0, (s, a) => s + a.planned);
@@ -525,7 +527,7 @@ class _ReportPaper extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Phạm vi: $scope • Người lập: Hoàng An',
+              'Phạm vi: $scope • Người lập: $author',
               style: const TextStyle(fontSize: 11),
             ),
           ),

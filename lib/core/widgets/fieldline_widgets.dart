@@ -681,6 +681,10 @@ class FlTextField extends StatelessWidget {
     this.inputFormatters,
     this.enabled = true,
     this.textCapitalization = TextCapitalization.none,
+    this.obscureText = false,
+    this.autofillHints,
+    this.suffix,
+    this.onSubmitted,
   });
 
   final String label;
@@ -691,6 +695,12 @@ class FlTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
   final TextCapitalization textCapitalization;
+  final bool obscureText;
+  final Iterable<String>? autofillHints;
+  final Widget? suffix;
+
+  /// Gọi khi bấm phím xong trên bàn phím; có giá trị thì ô là ô cuối.
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -709,7 +719,14 @@ class FlTextField extends StatelessWidget {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           textCapitalization: textCapitalization,
-          textInputAction: TextInputAction.next,
+          obscureText: obscureText,
+          autocorrect: !obscureText,
+          enableSuggestions: !obscureText,
+          autofillHints: autofillHints,
+          onFieldSubmitted: onSubmitted,
+          textInputAction: onSubmitted != null
+              ? TextInputAction.done
+              : TextInputAction.next,
           style: TextStyle(
             fontSize: 14,
             color: enabled ? FlColors.ink : FlColors.muted,
@@ -717,6 +734,7 @@ class FlTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             fillColor: enabled ? FlColors.surface : FlColors.surfaceAlt,
+            suffixIcon: suffix,
           ),
         ),
       ],

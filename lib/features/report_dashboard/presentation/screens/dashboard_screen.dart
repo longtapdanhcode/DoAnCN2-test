@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:field_inventory_edge_ai/features/auth/presentation/account_sheet.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
@@ -643,17 +644,10 @@ class MobileDashboard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const CircleAvatar(
+                    const AccountAvatar(
                       radius: 18,
-                      backgroundColor: FlColors.logoTile,
-                      child: Text(
-                        'HA',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      background: FlColors.logoTile,
+                      foreground: Colors.white,
                     ),
                   ],
                 ),
