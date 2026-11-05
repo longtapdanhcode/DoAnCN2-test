@@ -36,6 +36,11 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
     /// Whether to return the input image with the barcode event.
     /// This is static to avoid accessing `self` in the `VNDetectBarcodesRequest` callback.
     private static var returnImage: Bool = false
+
+    /// [Field Inventory] Phải khớp AiConfig.cropFraction / AiConfig.inputSize
+    /// bên Dart: ô vuông giữa ảnh, cạnh = 70% cạnh ngắn, thu về 640×640.
+    static let aiCropFraction: CGFloat = 0.7
+    static let aiInputSize: Int = 640
     private static var lastEmptyFrameTime: Double = 0
 
     /// The dispatch queue that will process ``captureOutput(_:didOutput:from:)`` calls.
@@ -310,10 +315,18 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
                         })
                         
                         var bytes: FlutterStandardTypedData? = nil
-                        
+                        // [Field Inventory] Ảnh vào Edge AI đã cắt theo khung quét.
+                        var aiInput: FlutterStandardTypedData? = nil
+
                         if MobileScannerPlugin.returnImage,
                            let imageBytes = currentImage.jpegData(compressionQuality: 0.8) {
                             bytes = FlutterStandardTypedData(bytes: imageBytes)
+                        }
+                        if MobileScannerPlugin.returnImage,
+                           let rgb = currentImage.centerSquareRGB(
+                               fraction: MobileScannerPlugin.aiCropFraction,
+                               size: MobileScannerPlugin.aiInputSize) {
+                            aiInput = FlutterStandardTypedData(bytes: rgb)
                         }
 
                         DispatchQueue.main.async {
@@ -338,6 +351,7 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
                             self?.sink?([
                                 "name": "barcode",
                                 "image": imageData,
+                                "aiInput": aiInput,
                                 "data": barcodes.map({
                                     $0.toMap(
                                         imageWidth: currentImage.width,
@@ -1159,6 +1173,55 @@ class MapArgumentReader {
 }
 
 extension CGImage {
+    /// [Field Inventory] Cắt ô vuông giữa ảnh (cạnh = `fraction` × cạnh ngắn)
+    /// rồi thu về `size`×`size`, trả về RGB 8-bit liền nhau (hàng trên cùng
+    /// trước). Edge AI dùng thẳng mảng này, không phải giải mã JPEG trong Dart.
+    public func centerSquareRGB(fraction: CGFloat, size: Int) -> Data? {
+        let side = (CGFloat(min(width, height)) * fraction).rounded()
+        let rect = CGRect(
+            x: ((CGFloat(width) - side) / 2).rounded(),
+            y: ((CGFloat(height) - side) / 2).rounded(),
+            width: side,
+            height: side
+        )
+        guard side >= 1, let cropped = cropping(to: rect) else {
+            return nil
+        }
+        let bytesPerRow = size * 4
+        var rgba = [UInt8](repeating: 0, count: size * bytesPerRow)
+        let drawn: Bool = rgba.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress,
+                width: size,
+                height: size,
+                bitsPerComponent: 8,
+                bytesPerRow: bytesPerRow,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+            ) else {
+                return false
+            }
+            context.interpolationQuality = .medium
+            context.draw(cropped, in: CGRect(x: 0, y: 0, width: size, height: size))
+            return true
+        }
+        guard drawn else {
+            return nil
+        }
+        var rgb = Data(count: size * size * 3)
+        rgb.withUnsafeMutableBytes { buffer in
+            let out = buffer.bindMemory(to: UInt8.self)
+            var j = 0
+            for i in stride(from: 0, to: rgba.count, by: 4) {
+                out[j] = rgba[i]
+                out[j + 1] = rgba[i + 1]
+                out[j + 2] = rgba[i + 2]
+                j += 3
+            }
+        }
+        return rgb
+    }
+
     public func jpegData(compressionQuality: CGFloat) -> Data? {
         let mutableData = CFDataCreateMutable(nil, 0)
 

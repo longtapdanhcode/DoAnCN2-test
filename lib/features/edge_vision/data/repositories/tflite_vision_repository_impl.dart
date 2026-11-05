@@ -132,23 +132,36 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
   ) async => (await analyze(imageBytes)).labels;
 
   @override
-  Future<VisionAnalysis> analyze(List<int> imageBytes) async {
+  Future<VisionAnalysis> analyze(
+    List<int> imageBytes, {
+    Uint8List? squareRgb,
+    int frameWidth = 0,
+    int frameHeight = 0,
+  }) async {
     if (_closed || !_isModelLoaded || _isolateInterpreter == null) {
       return const VisionAnalysis();
     }
 
     final watch = Stopwatch()..start();
     try {
-      final bytes = imageBytes is Uint8List
-          ? imageBytes
-          : Uint8List.fromList(imageBytes);
-      // Giải mã JPEG bằng bộ giải mã native của Flutter, thu nhỏ ngay lúc
-      // giải mã, rồi cắt phần giữa theo khung xanh.
-      final decoded = await _decodeScaled(bytes);
-      if (decoded == null) return const VisionAnalysis();
-      final (rgba, scaledWidth, scaledHeight, frameWidth, frameHeight) =
-          decoded;
-      final input = rgbaToInputTensor(rgba, scaledWidth, scaledHeight);
+      const size = AiConfig.inputSize;
+      final Float32List input;
+      if (squareRgb != null && squareRgb.length == size * size * 3) {
+        // iOS đã cắt + thu nhỏ theo khung quét ở phía native.
+        input = rgbToInputTensor(squareRgb);
+      } else {
+        // Nền tảng khác: giải mã JPEG bằng bộ giải mã native của Flutter,
+        // thu nhỏ ngay lúc giải mã, rồi cắt phần giữa theo khung xanh.
+        final bytes = imageBytes is Uint8List
+            ? imageBytes
+            : Uint8List.fromList(imageBytes);
+        final decoded = await _decodeScaled(bytes);
+        if (decoded == null) return const VisionAnalysis();
+        final (rgba, scaledWidth, scaledHeight, width, height) = decoded;
+        input = rgbaToInputTensor(rgba, scaledWidth, scaledHeight);
+        frameWidth = width;
+        frameHeight = height;
+      }
       final preprocessTime = watch.elapsed;
       final interpreter = _isolateInterpreter;
       if (_closed || interpreter == null) return const VisionAnalysis();
@@ -251,6 +264,20 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
       descriptor?.dispose();
       buffer.dispose();
     }
+  }
+
+  /// Ảnh RGB [AiConfig.inputSize]² (từ native) sang tensor float32 NCHW, 0..1.
+  @visibleForTesting
+  static Float32List rgbToInputTensor(Uint8List rgb) {
+    const plane = AiConfig.inputSize * AiConfig.inputSize;
+    const inv = 1 / 255.0;
+    final data = Float32List(3 * plane);
+    for (var i = 0, p = 0; i < plane; i++, p += 3) {
+      data[i] = rgb[p] * inv;
+      data[plane + i] = rgb[p + 1] * inv;
+      data[2 * plane + i] = rgb[p + 2] * inv;
+    }
+    return data;
   }
 
   /// Cắt ô vuông [AiConfig.inputSize] ở giữa ảnh RGBA rồi chuyển sang tensor

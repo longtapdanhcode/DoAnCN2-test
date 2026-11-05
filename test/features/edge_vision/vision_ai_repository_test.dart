@@ -112,4 +112,16 @@ void main() {
       expect(t[mid], 0);
     });
   });
+
+  test('rgbToInputTensor tách kênh NCHW từ RGB liền nhau', () {
+    const plane = AiConfig.inputSize * AiConfig.inputSize;
+    final rgb = Uint8List(plane * 3);
+    rgb[3] = 255; // điểm thứ 2, kênh R
+    rgb[5] = 51; // điểm thứ 2, kênh B
+    final t = TfliteVisionRepositoryImpl.rgbToInputTensor(rgb);
+    expect(t.length, 3 * plane);
+    expect(t[1], closeTo(1.0, 1e-6));
+    expect(t[plane + 1], 0);
+    expect(t[2 * plane + 1], closeTo(0.2, 1e-6));
+  });
 }

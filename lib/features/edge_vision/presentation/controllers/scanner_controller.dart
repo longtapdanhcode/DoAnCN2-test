@@ -326,7 +326,15 @@ class ScannerController extends _$ScannerController {
     );
     _isAnalyzing = true;
     try {
-      final analysis = await _visionAiRepo.analyze(imageBytes);
+      // iOS (bản vá mobile_scanner) gửi kèm ảnh đã cắt theo khung quét.
+      final raw = capture.raw;
+      final squareRgb = raw is Map ? raw['aiInput'] : null;
+      final analysis = await _visionAiRepo.analyze(
+        imageBytes,
+        squareRgb: squareRgb is Uint8List ? squareRgb : null,
+        frameWidth: capture.size.width.round(),
+        frameHeight: capture.size.height.round(),
+      );
       // Đã rời màn Quét trong lúc AI xử lý khung này.
       if (!ref.mounted) return;
       final objects = analysis.labels;
