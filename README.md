@@ -1,196 +1,238 @@
-# Field Inventory & Edge AI Suite
-### Giải pháp kiểm kê tài sản & thiết bị hiện trường tích hợp AI chạy trên thiết bị
+# Fieldline — Field Inventory & Edge AI
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.47-02569B?logo=flutter)](https://flutter.dev)
-[![Riverpod](https://img.shields.io/badge/State-Riverpod_3-2F74C0)](https://riverpod.dev)
-[![Database](https://img.shields.io/badge/Local_DB-Isar_Plus-4A154B)](https://pub.dev/packages/isar_plus)
-[![Edge AI](https://img.shields.io/badge/Edge_AI-YOLO_→_TFLite-FF6F00?logo=tensorflow)](https://www.tensorflow.org/lite)
-[![Backend](https://img.shields.io/badge/BaaS-Supabase-3ECF8E?logo=supabase)](https://supabase.com)
-[![Tests](https://img.shields.io/badge/Tests-150%2F150_Passed-success)](test/)
-[![Analysis](https://img.shields.io/badge/Analyze-0_Issues-brightgreen)](#chất-lượng-mã-nguồn)
+Ứng dụng **kiểm kê tài sản hiện trường** viết bằng Flutter. App cho phép quét mã QR/Barcode, nhận diện thiết bị và hư hỏng **ngay trên máy** bằng mô hình YOLO (TFLite), lập phiếu kiểm kê **ngoại tuyến** (Isar), ký xác nhận, chụp ảnh minh chứng, tự đồng bộ lên **Supabase** khi có mạng và xuất **báo cáo PDF A4**. Bản **web** đóng vai trò trung tâm quản lý dữ liệu.
+
+> Đồ án cuối kỳ môn **Phát triển ứng dụng đa nền tảng**.
 
 ---
 
-## Giới thiệu
+## Tính năng chính
 
-**Field Inventory & Edge AI Suite** hỗ trợ kiểm kê viên ghi nhận và quản lý tài sản, thiết bị ngay tại hiện trường. Hệ thống gồm hai phần:
+### App hiện trường (iOS / Android / macOS)
+- **Đăng nhập / đăng ký** bằng Supabase Auth. Phiên đăng nhập được giữ trên máy, nên sau lần đầu vẫn vào app được khi ngoại tuyến.
+- **Quét mã** QR / EAN / UPC / Code128/39/93 / DataMatrix / PDF417. Hỗ trợ đèn flash, đổi camera, **nhập mã thủ công** khi camera lỗi.
+- **Edge AI**: YOLO chạy on-device, nhận diện **9 lớp**:
+  - Thiết bị: Tủ điện, Aptomat, Ghế, Bàn, Máy chiếu
+  - Hư hỏng: Vết nứt, Gỉ sét, Thấm nước, Khuyết tật kim loại
 
-- **App điện thoại (iOS)** – công cụ chính ở hiện trường: quét QR / mã vạch, nhận diện thiết bị và hư hỏng bằng AI chạy ngay trên máy, lập phiếu kèm ảnh minh chứng, ký xác nhận. Làm việc **ngoại tuyến**, tự đồng bộ khi có mạng.
-- **Bản web** – trung tâm quản lý dữ liệu: xem toàn bộ phiếu do các điện thoại gửi lên, quản lý danh mục tài sản, báo cáo và xuất PDF. Không quét camera.
+  Trên iOS, mô hình chạy bằng **GPU (Metal)**, mỗi lượt nhận diện mất khoảng 0,3 giây. AI chỉ đọc phần ảnh **trong khung xanh**, và vẫn nhận diện được khi khung hình không có QR. Màn quét có thẻ **chẩn đoán AI** hiện thời gian xử lý và phần cứng đang dùng (GPU/CPU).
+- **Phiếu kiểm kê**: tên tài sản, loại, khu vực, vị trí, tình trạng, số lượng, ghi chú, **ảnh minh chứng** (`image_picker`). Phiếu chưa ký được lưu thành **bản nháp**: bản nháp không đồng bộ, không vào báo cáo, có thể mở lại để ký hoặc xoá.
+- **Ký xác nhận** trên canvas (lưu tên và chức vụ người ký), xuất ảnh PNG.
+- **Offline-first**: mọi phiếu lưu vào Isar trước.
+- **Tự động đồng bộ** phiếu đã ký khi có mạng (debounce 3 giây, retry lùi dần từ 30 giây đến tối đa 5 phút). Có thể đồng bộ tay ở màn Đồng bộ.
+- **Danh mục tài sản**: thêm/sửa tài sản, lọc theo khu vực, xuất danh sách PDF. Khi máy và cloud sửa cùng một tài sản, app hiện **màn đối chiếu** để chọn giữ bản nào.
+- **Tổng quan & Báo cáo**: số liệu thật, chọn kỳ báo cáo theo tháng, xem trước PDF nhiều trang trước khi chia sẻ.
+- **Địa điểm & Cài đặt**: thống kê theo khu vực, cấu hình đồng bộ.
 
-Dữ liệu dùng chung qua **Supabase** (PostgreSQL, Storage, Auth), khoá theo tài khoản đăng nhập.
+### Bản web (trung tâm quản lý — Card 28)
+- Đọc/ghi trực tiếp trên Supabase, không dùng Isar.
+- Không có chức năng quét, lập phiếu, ký hay đồng bộ ngoại tuyến. Các route `/scanner`, `/audit-form`, `/signature`, `/sync` tự chuyển về trang chủ.
 
----
+## Tech stack
 
-## Tính năng
-
-### Hiện trường (app điện thoại)
-- **Quét mã** QR / mã vạch bằng `mobile_scanner` (bản vá trong `third_party/` để AI nhận khung hình cả khi không có mã), đèn flash, đổi camera, nhập mã thủ công.
-- **Edge AI**: mô hình YOLO tự huấn luyện (9 lớp: Vết nứt, Gỉ sét, Thấm nước, Tủ điện, Aptomat, Khuyết tật kim loại, Ghế, Bàn, Máy chiếu) xuất sang TFLite, chạy trong isolate riêng; ngưỡng 50% cho thiết bị, 70% cho hư hỏng. Có **thẻ chẩn đoán AI** (trạng thái mô hình, số khung, thời gian xử lý, điểm cao nhất).
-- **Phiếu kiểm kê**: số lượng, khu vực, vị trí, tình trạng, ghi chú, tối đa **3 ảnh minh chứng** (chụp hoặc chọn thư viện). Lưu **bản nháp** để ký sau, xoá nháp có xác nhận.
-- **Ký xác nhận** trên canvas; họ tên và vai trò người ký tự điền theo tài khoản.
-- **Ngoại tuyến** với Isar; **tự đồng bộ** khi mở app, có mạng lại, chuyển Wi-Fi, quay lại từ nền hoặc vừa ký phiếu; thử lại với khoảng chờ tăng dần; tuỳ chọn *Chỉ tải ảnh qua Wi-Fi*.
-- **Đối chiếu dữ liệu khác phiên bản**: gộp ba chiều danh mục tài sản; mục hai bên cùng sửa thì người dùng chọn giữ bản trên máy hay bản đám mây.
-
-### Quản lý (app & web)
-- **Đăng nhập / Đăng ký** bằng Supabase Auth (bắt buộc; phiên lưu trên máy nên vẫn dùng ngoại tuyến). Vai trò Kiểm kê viên / Quản trị viên.
-- **Tổng quan**: tiến độ kiểm kê theo khu vực, phiếu gần đây, tài sản cần xử lý.
-- **Tài sản & thiết bị**: thêm/sửa, tìm kiếm, lọc theo khu vực và tình trạng, xuất danh sách PDF.
-- **Báo cáo**: chọn kỳ theo tháng, xem trước PDF nhiều trang và xuất PDF có chữ ký, ảnh minh chứng (bản nháp không vào báo cáo).
-- **Địa điểm**: khu vực, vị trí, tiến độ từng khu vực; chạm để mở danh mục đã lọc.
-- **Cài đặt**: tài khoản, nơi kiểm kê và ca làm việc, đồng bộ, thông tin mô hình AI, dữ liệu trên máy.
-
----
+| Mảng | Công nghệ |
+|---|---|
+| Framework | Flutter (Dart `^3.13.4`) |
+| State | `flutter_riverpod` + `riverpod_generator` |
+| Routing | `go_router` (auth redirect, `ShellRoute`) |
+| Camera / Scanner | `mobile_scanner` 7.4.2 (**bản vá cục bộ** trong `third_party/`), `permission_handler` |
+| Edge AI | `tflite_flutter` (GPU delegate Metal trên iOS) — YOLOv8s, input 640×640 |
+| Local DB | `isar_plus` |
+| Backend | `supabase_flutter` (Postgres + RLS, Auth, Storage) |
+| Mạng | `connectivity_plus`, `http` |
+| PDF | `pdf`, `printing` |
+| Khác | `signature`, `image_picker`, `shared_preferences`, `flex_color_scheme`, `google_fonts`, `fpdart`, `freezed` |
 
 ## Kiến trúc
 
-Feature-first Clean Architecture (mỗi module có `data / domain / presentation`), Riverpod 3 cho state và DI, go_router cho điều hướng.
+Dự án theo **Clean Architecture, chia theo feature**: `domain` (entity, abstract repository, use case) → `data` (model, repository impl) → `presentation` (controller, screen, widget).
 
 ```
 lib/
+├── main.dart                     # Khởi tạo Supabase; mobile: Isar, web: console overrides
 ├── core/
-│   ├── ai_pipeline/        # Cấu hình mô hình: kích thước ảnh, ngưỡng tin cậy
-│   ├── database/           # Khởi tạo Isar (app điện thoại)
-│   ├── network/            # Supabase client, trạng thái mạng
-│   ├── platform/           # Chế độ chạy: điện thoại (field) / web (console)
-│   ├── router/             # go_router + chặn đăng nhập, chặn màn quét trên web
-│   ├── theme/ widgets/     # Hệ thống giao diện Fieldline
-│   └── utils/              # Tạo PDF, bố cục responsive
-├── features/
-│   ├── edge_vision/        # Quét mã, Edge AI TFLite, chẩn đoán AI
-│   ├── offline_audit/      # Phiếu, bản nháp, ảnh minh chứng, đồng bộ & tự đồng bộ
-│   ├── canvas_signature/   # Ký xác nhận
-│   ├── asset_catalog/      # Danh mục tài sản, gộp ba chiều, đối chiếu xung đột
-│   ├── report_dashboard/   # Tổng quan, báo cáo, xem trước PDF
-│   ├── auth/               # Đăng nhập, đăng ký, hồ sơ, đăng xuất
-│   ├── workspace/          # Địa điểm & Cài đặt
-│   └── cloud_console/      # Nguồn dữ liệu Supabase cho bản web
-└── main.dart               # Điện thoại: Isar + đồng bộ; Web: đọc/ghi thẳng Supabase
+│   ├── ai_pipeline/ai_config.dart    # Đường dẫn model, inputSize, ngưỡng tin cậy
+│   ├── database/local_db_init.dart   # initIsar() + isarInstanceProvider
+│   ├── network/                      # supabase_config (không commit), provider, connectivity
+│   ├── platform/app_mode.dart        # AppMode.field (mobile) / AppMode.console (web)
+│   ├── router/app_router.dart        # GoRouter + auth guard
+│   ├── theme/fieldline_theme.dart    # Theme "Fieldline" (theo Figma)
+│   ├── utils/                        # pdf_report_generator, responsive_layout
+│   └── widgets/                      # FieldlineShell (navigation), widget dùng chung
+└── features/
+    ├── auth/              # Supabase Auth, màn đăng nhập/đăng ký, tài khoản
+    ├── edge_vision/       # Scanner + suy luận TFLite + panel chẩn đoán AI
+    ├── offline_audit/     # Phiếu kiểm kê, Isar, ảnh minh chứng, sync & auto-sync
+    ├── canvas_signature/  # Ký xác nhận
+    ├── asset_catalog/     # Danh mục tài sản, editor, đối chiếu xung đột
+    ├── report_dashboard/  # Tổng quan, báo cáo, xem trước PDF
+    ├── workspace/         # Địa điểm, Cài đặt
+    └── cloud_console/     # Dữ liệu và overrides cho bản web
+
+supabase/
+├── migrations/            # Thay đổi schema theo thời gian
+└── seed/assets_sample.sql # 5 tài sản mẫu
+
+third_party/mobile_scanner/ # Bản vá mobile_scanner (xem PATCH_NOTES.md)
+assets/models/              # object_detection.tflite (~45 MB) + labels.txt
+docs/kiem-thu/              # Biên bản kiểm thử thủ công
 ```
 
-**Hai chế độ chạy** (`lib/core/platform/app_mode.dart`):
+### Màn hình
 
-| | App điện thoại | Bản web |
-|---|---|---|
-| Nguồn dữ liệu | Isar trên máy, đồng bộ Supabase | Supabase trực tiếp (tải lại mỗi phút) |
-| Quét mã, AI, lập phiếu, ký | Có | Không (ẩn và chặn đường dẫn) |
-| Tổng quan, Tài sản, Báo cáo, Địa điểm, Cài đặt | Có | Có |
-| AI TFLite | Chạy trên máy | Thay bằng bản rỗng (web không có `dart:ffi`) |
+| Route | Màn hình | Web |
+|---|---|:-:|
+| `/login`, `/register` | Đăng nhập / Đăng ký | ✅ |
+| `/` | Tổng quan | ✅ |
+| `/assets`, `/assets/new`, `/assets/:code` | Danh mục, thêm/sửa tài sản | ✅ |
+| `/reports`, `/reports/preview` | Báo cáo, xem trước PDF | ✅ |
+| `/locations`, `/settings` | Địa điểm, Cài đặt | ✅ |
+| `/scanner` | Quét mã + Edge AI | ❌ |
+| `/audit-form` | Lập phiếu kiểm kê | ❌ |
+| `/signature` | Ký xác nhận | ❌ |
+| `/sync`, `/sync/conflicts` | Đồng bộ, đối chiếu xung đột | ❌ |
 
----
+### Pipeline Edge AI
 
-## Công nghệ chính
+- **Mô hình:** YOLOv8s (`best-new.pt`, huấn luyện ở 640) xuất sang TFLite float32 bằng LiteRT.
+  - Input: `1×3×640×640` (NCHW).
+  - Output: `1×(4+9)×8400` gồm `cx, cy, w, h` rồi đến điểm của từng lớp.
+  - So với model trước (`best.pt`, huấn luyện ở 800): mAP50-95 tập val từ 0.576 lên **0.761**, mAP50 từ 0.793 lên **0.855**, recall từ 0.760 lên **0.807**. Hai lần huấn luyện dùng tập dữ liệu khác nhau nên các số này chỉ để tham khảo.
+- **Phần cứng chạy:** iOS dùng **GPU delegate Metal** (cho phép FP16). Nếu Metal lỗi, app tự chuyển sang CPU 4 luồng. Đo trên iPhone 11 Pro Max: phần mô hình mất 98–153 ms (CPU cũ mất vài giây).
+- **Tiền xử lý:** AI chỉ nhận ô vuông giữa khung hình, cạnh bằng 70% cạnh ngắn (`AiConfig.cropFraction`), khớp với khung xanh trên màn quét.
+  - iOS: bản vá `mobile_scanner` cắt và thu nhỏ ô này về RGB 640×640 bằng CoreGraphics, gửi sang Dart qua khóa `aiInput`. Dart chỉ còn đổi mảng này sang tensor.
+  - Nền tảng khác: giải mã JPEG bằng `dart:ui` (thu nhỏ ngay lúc giải mã), rồi cắt ô giữa.
+- **Ngưỡng tin cậy:** `0.5` cho thiết bị, `0.7` cho nhóm hư hỏng (lớp 0, 1, 2, 5). Nhóm hư hỏng dùng ngưỡng cao hơn vì ma trận nhầm lẫn cho thấy các lớp này báo nhầm nhiều ở vùng nền.
+- **Bảo vệ CPU:** nếu AI đang xử lý thì bỏ qua (drop) frame mới.
+- **Bản vá `mobile_scanner` (iOS/macOS):**
+  1. Plugin gốc bỏ qua frame không có mã. Bản vá vẫn gửi frame (khoảng 2 frame/giây) để AI chạy được khi không có QR.
+  2. Gửi kèm `aiInput` (ảnh 640×640 đã cắt theo khung quét) như mô tả ở trên.
 
-| Thư viện | Vai trò |
-| :--- | :--- |
-| `flutter_riverpod` 3, `riverpod_annotation` | State, DI, sinh provider |
-| `go_router` | Điều hướng, chặn đăng nhập |
-| `isar_plus` | CSDL ngoại tuyến (phiếu, tài sản) |
-| `mobile_scanner` (bản vá cục bộ) | Camera, quét QR / mã vạch, cấp khung hình cho AI |
-| `tflite_flutter`, `image` | Chạy mô hình YOLO on-device, tiền xử lý letterbox 640×640 |
-| `signature` | Canvas chữ ký |
-| `image_picker` | Ảnh minh chứng |
-| `pdf`, `printing` | Tạo, xem trước và chia sẻ PDF (font Inter tiếng Việt) |
-| `supabase_flutter` | Auth, PostgreSQL, Storage |
-| `connectivity_plus` | Trạng thái mạng, Wi-Fi cho tự đồng bộ |
-| `shared_preferences`, `http` | Thiết lập và tải ảnh trên bản web |
+  Chi tiết xem `third_party/mobile_scanner/PATCH_NOTES.md`.
+  > ⚠️ Android **chưa vá**, nên trên Android AI chỉ chạy khi camera thấy mã.
+- **Hạn chế đã biết:** model hiện tại thiên về lớp **Aptomat**. Máy chiếu và tủ điện đóng cửa thường bị báo là Aptomat với độ tin cậy 90–95%, vết nứt đôi khi bị báo là Thấm nước. Cần bổ sung ảnh máy chiếu, tủ điện, vết nứt và cân bằng số ảnh giữa các lớp rồi huấn luyện lại.
 
----
+### Dữ liệu
 
-## Supabase
+**Isar — `AuditRecordModel`**
 
-Chạy lần lượt các file trong `supabase/migrations/` bằng **Dashboard → SQL Editor**:
+| Nhóm | Trường |
+|---|---|
+| Tài sản | `scanCode`, `assetName`, `aiDetectedLabel`, `quantity` |
+| Vị trí & tình trạng | `area`, `location`, `condition`, `notes` |
+| Ký xác nhận | `signatureBytes`, `signerName`, `signerRole` |
+| Minh chứng | `photoFiles` |
+| Đồng bộ | `signatureUrl`, `timestamp`, `isSynced` |
 
-| Migration | Nội dung |
-| :--- | :--- |
-| `20261024120000_add_audit_record_details.sql` | Chi tiết phiếu (khu vực, vị trí, tình trạng, ghi chú) |
-| `20261024150000_add_asset_name_and_signer.sql` | Tên tài sản, người ký |
-| `20261026090000_create_assets.sql` | Bảng danh mục `assets` |
-| `20261028090000_add_audit_evidence_photos.sql` | Cột `photo_urls`, bucket `evidence` |
-| `20261030090000_auth_profiles_and_rls.sql` | Bảng `profiles`, cột `created_by`, khoá dữ liệu cho tài khoản đã đăng nhập |
+**Isar — `AssetModel`:** `name`, `category`, `area`, `location`, `quantity`, `status`, `lastAuditAt`, `updatedAt`, `isSynced`, cùng `baseJson` / `conflictJson` để đối chiếu 3 bên.
 
-Tạo tài khoản admin: **Authentication → Users → Add user** (tích *Auto Confirm User*), rồi chạy câu `update public.profiles set role = 'admin' ...` ở cuối migration cuối cùng.
-
----
+**Supabase**
+- Bảng: `audit_records`, `assets`, `profiles`.
+- Storage bucket: `signatures` (ảnh chữ ký), `evidence` (ảnh minh chứng).
+- **RLS:** chỉ người đã đăng nhập mới truy cập được dữ liệu. Phiếu kiểm kê chỉ người tạo (`created_by`) được sửa.
 
 ## Cài đặt & chạy
 
-**Yêu cầu:** Flutter 3.47 (Dart ≥ 3.13), Xcode cho iOS, tài khoản Supabase.
+### Yêu cầu
+- Flutter SDK hỗ trợ Dart `>= 3.13.4`
+- Xcode + CocoaPods (iOS/macOS); Android Studio + Android SDK (Android)
+- Một project Supabase
+- Máy thật để thử camera và AI (simulator không có camera)
+
+### 1. Lấy mã nguồn & cài package
 
 ```bash
-git clone https://github.com/longtapdanhcode/DoAnCN2-test.git
-cd DoAnCN2-test
+git clone https://github.com/longtapdanhcode/Finalterm_DANENTANG.git
+cd Finalterm_DANENTANG
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+```
 
-# Cấu hình Supabase (file này không được commit)
+### 2. Cấu hình Supabase
+
+```bash
 cp lib/core/network/supabase_config.dart.example lib/core/network/supabase_config.dart
-# rồi điền URL và anon key trong Project Settings → API
-
-flutter test          # 150 test
-flutter analyze       # 0 lỗi
 ```
 
-**App điện thoại (iOS, nên dùng bản release trên máy thật):**
+Điền `url` và `anonKey` (publishable key) lấy từ **Supabase Dashboard → Project Settings → API**. File `supabase_config.dart` đã nằm trong `.gitignore`, **không commit file này**.
+
+Nếu để trống, app vẫn khởi động. Tuy nhiên đăng nhập là bắt buộc, nên để dùng app thật cần cấu hình đầy đủ.
+
+### 3. Khởi tạo database
+
+Bước này giả định bảng `public.audit_records` và bucket `signatures` (tạo ở Card 10) đã có sẵn. Sau đó chạy lần lượt các file trong `supabase/migrations/` theo thứ tự tên file, bằng Supabase CLI (`supabase db push`) hoặc dán vào SQL Editor:
+
+| Migration | Nội dung |
+|---|---|
+| `20261024120000_add_audit_record_details` | Thêm `area`, `location`, `condition`, `notes` |
+| `20261024150000_add_asset_name_and_signer` | Thêm `asset_name`, `signer_name`, `signer_role` |
+| `20261026090000_create_assets` | Tạo bảng `assets` |
+| `20261028090000_add_audit_evidence_photos` | Thêm `photo_urls` và bucket `evidence` |
+| `20261030090000_auth_profiles_and_rls` | Tạo bảng `profiles`, thêm `created_by`, siết RLS theo tài khoản |
+
+Nếu cần dữ liệu mẫu, chạy thêm `supabase/seed/assets_sample.sql`.
+
+### 4. Chạy
 
 ```bash
-flutter run --release -d <id-thiết-bị>
+flutter run                 # mobile / macOS (chế độ hiện trường)
+flutter run -d chrome       # bản web (trung tâm quản lý)
 ```
 
-**Bản web:**
+## Lưu ý theo nền tảng
+
+- **iOS:**
+  - Impeller đã được tắt trong `Info.plist` (`FLTEnableImpeller = false`) để tránh màn hình camera bị đen. Khi chạy CLI có thể thêm `--no-enable-impeller`.
+  - Quyền camera đã khai báo qua `NSCameraUsageDescription`.
+- **Android:**
+  - Đã khai báo quyền `CAMERA`.
+  - Theo biên bản kiểm thử Sprint 6 có 2 lỗi build còn mở:
+    1. `tflite_flutter` lệch JVM target (11 so với 17).
+    2. `permission_handler_android` yêu cầu `compileSdk >= 37`.
+
+    Chi tiết xem `docs/kiem-thu/sprint6-card19.md`.
+- **Web:** không có camera, AI hay lưu ngoại tuyến (xem phần Bản web ở trên).
+
+## Kiểm thử
 
 ```bash
-flutter build web
-python3 -m http.server 8080 --directory build/web
+flutter test
 ```
 
-Mở `http://localhost:8080` và đăng nhập.
+| Thư mục test | Phạm vi |
+|---|---|
+| `test/core/utils/` | PDF báo cáo, PDF danh sách tài sản, responsive layout |
+| `test/features/auth/` | Luồng đăng nhập/đăng ký |
+| `test/features/edge_vision/` | Use case xử lý mã quét, repository AI, màn quét, chẩn đoán AI |
+| `test/features/offline_audit/` | Form, bản nháp, ảnh minh chứng, model cloud, sync, auto-sync |
+| `test/features/asset_catalog/` | Model, merge/đối chiếu, các màn tài sản |
+| `test/features/report_dashboard/` | Thống kê, chọn kỳ báo cáo, dashboard |
+| `test/features/workspace/`, `cloud_console/` | Địa điểm, Cài đặt, bản web |
+| `test/helpers/` | Fake cho auth và ảnh minh chứng |
 
----
+Biên bản kiểm thử thủ công nằm trong `docs/kiem-thu/`.
 
-## Chất lượng mã nguồn
+## Lộ trình phát triển
 
-```
-• flutter analyze        : 0 issues
-• flutter test           : 150 / 150 passed (28 file test, ~4.500 dòng)
-• Mã viết tay (lib/)     : 72 file, ~14.700 dòng
-• Mã sinh tự động        : ~6.800 dòng (.g.dart)
-• Thiết bị đã chạy thật  : iPhone 11 Pro Max (iOS 17.7), Chrome (bản web)
-```
-
----
-
-## Tiến độ theo Sprint (Trello)
-
-- **Sprint 1 – Computer Vision & AI Pipeline:** Card 1 dataset ✅ · Card 2 huấn luyện ⚠️ (chưa nhận ra vết nứt) · Card 3 xuất TFLite ⚠️ (bản float32 42 MB, chưa lượng tử hoá)
-- **Sprint 2 – Flutter Core & Edge AI:** Card 4–6 ✅
-- **Sprint 3 – Offline-First & Canvas:** Card 7–9 ✅
-- **Sprint 4 – Cloud Sync & Export:** Card 10–12 ✅
-- **Sprint 5 – Hồ sơ đồ án:** Card 13 đóng gói ⏳ · Card 14 video demo ⏳ · Card 15 báo cáo ⏳ · Card 16 slide ⏳
-- **Sprint 6 – Chạy thật luồng phiếu & đồng bộ:** Card 17–18 ✅ · Card 19 ⚠️ (còn build Android)
-- **Sprint 7 – Danh mục tài sản thật:** Card 20, 22 ✅ · Card 21 ⚠️ (còn thử lưu tài sản khi mất mạng)
-- **Sprint 8 – Hoàn thiện chức năng:** Card 23 ảnh minh chứng ✅ · Card 24 tự đồng bộ ✅ · Card 25 đối chiếu dữ liệu ✅
-- **Sprint 9 – Tài khoản & nền tảng:** Card 26 đăng nhập ✅ · Card 27 Địa điểm & Cài đặt ✅ · Card 28 bản web ✅
-
-## Hạn chế đã biết
-
-- Mô hình chưa nhận ra vết nứt (điểm Vết nứt ~0,5% trên ảnh thử); các lớp khác đạt khoảng 57–74% trên máy thật.
-- Mô hình float32 nặng 42 MB, mỗi khung mất 1,5–2,2 giây trên iPhone 11 Pro Max.
-- Chưa build và kiểm thử trên Android (bản vá `mobile_scanner` mới có cho iOS).
-- Tự đồng bộ chỉ chạy khi app đang mở (chưa dùng tác vụ nền iOS).
-- Mã phiếu trên web đánh theo thứ tự trên đám mây nên có thể khác mã trên điện thoại.
-
----
+| Sprint | Card | Nội dung |
+|---|---|---|
+| 1 | 1–3 | Dataset, cấu hình AI, xuất model TFLite |
+| 2 | 4–6 | Khung Flutter + Clean Architecture, scanner, inference on-device |
+| 3 | 7–9 | Isar offline-first, form kiểm kê, canvas chữ ký |
+| 4 | 10–12 | Supabase Cloud Sync, PDF A4, UI responsive |
+| 5 | 13 | Dọn dẹp mã nguồn, kiểm thử |
+| 6 | 17–19 | Giao diện Fieldline (Figma), trạng thái mạng thật, tên tài sản & người ký, kiểm thử iOS |
+| 7 | 20–22 | Danh mục tài sản thật, thêm/sửa & xuất PDF, số liệu thật cho Tổng quan/Báo cáo |
+| 8 | 23–25 | Ảnh minh chứng, tự động đồng bộ, đối chiếu xung đột tài sản |
+| 9 | 26–28 | Supabase Auth + RLS, màn Địa điểm & Cài đặt, bản web quản lý |
+| 10 | — | Model YOLOv8s mới, Edge AI chạy GPU Metal, cắt ảnh theo khung quét ở phía native |
 
 ## Quy trình Git
 
-Mỗi thay đổi một commit theo Conventional Commits (`feat(card24): …`, `fix(ai): …`), làm trên nhánh tính năng và gộp vào `main` qua Pull Request ([#1](https://github.com/longtapdanhcode/DoAnCN2-test/pull/1) – Sprint 6–7, [#2](https://github.com/longtapdanhcode/DoAnCN2-test/pull/2) – Card 23–24, [#3](https://github.com/longtapdanhcode/DoAnCN2-test/pull/3) – Card 25, [#4](https://github.com/longtapdanhcode/DoAnCN2-test/pull/4) – Card 26–28).
+- Nhánh: `main` ← `develop` ← `feature/sprint<S>-card<N>-tv<K>`. Mọi thay đổi vào `develop` đều qua Pull Request.
+- Commit theo [Conventional Commits](https://www.conventionalcommits.org/), ví dụ:
 
-Tài liệu kỹ thuật thêm: [PROJECT_AUDIT_REPORT.md](PROJECT_AUDIT_REPORT.md), [TECHNICAL_JUSTIFICATION.md](TECHNICAL_JUSTIFICATION.md), biên bản kiểm thử [docs/kiem-thu/](docs/kiem-thu/).
-
----
-
-## Tác giả
-
-- **Đồ án:** All-in-One Field Inventory & Edge AI Suite
-- **Kho mã:** [longtapdanhcode/DoAnCN2-test](https://github.com/longtapdanhcode/DoAnCN2-test)
-- **Giấy phép:** Phục vụ nghiên cứu và bảo vệ đồ án chuyên ngành. `third_party/mobile_scanner` giữ giấy phép BSD-3 gốc.
+  ```
+  feat(card26): đăng nhập, đăng ký bằng Supabase Auth và khoá dữ liệu theo tài khoản
+  fix(ai): mô hình Edge AI bị huỷ ngay sau khi nạp nên không nhận diện được
+  ```
