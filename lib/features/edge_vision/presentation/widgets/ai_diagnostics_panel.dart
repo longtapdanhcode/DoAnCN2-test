@@ -119,6 +119,13 @@ class AiDiagnosticsPanel extends StatelessWidget {
                         '(${last.frameWidth > last.frameHeight ? 'ngang' : 'dọc'})'
                         ' • ${last.elapsed.inMilliseconds} ms',
             ),
+            if (last.backend.isNotEmpty)
+              row(
+                'Thời gian',
+                'ảnh ${last.preprocessTime.inMilliseconds} ms • '
+                    'mô hình ${last.inferenceTime.inMilliseconds} ms '
+                    '(${last.backend})',
+              ),
             row(
               'Điểm cao nhất',
               last.topLabel == null

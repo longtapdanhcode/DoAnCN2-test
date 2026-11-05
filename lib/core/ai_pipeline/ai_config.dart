@@ -13,6 +13,12 @@ class AiConfig {
   /// Kích thước cạnh đầu vào của mô hình.
   static const int inputSize = 640;
 
+  /// Tỉ lệ cạnh khung xanh so với cạnh ngắn của ảnh camera. Màn Quét hiển thị
+  /// camera kiểu cover nên khung xanh (~254pt trên khung xem ~366pt) chiếm
+  /// khoảng 70% chiều ngang ảnh. AI chỉ nhận phần ảnh giữa này, bỏ chữ/giao
+  /// diện xung quanh và bớt phải thu nhỏ ảnh.
+  static const double cropFraction = 0.7;
+
   /// Ngưỡng tin cậy cho nhóm thiết bị.
   static const double confidenceThreshold = 0.5;
 
