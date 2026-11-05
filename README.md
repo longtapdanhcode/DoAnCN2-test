@@ -80,17 +80,24 @@ docs/kiem-thu/              # Biên bản kiểm thử thủ công
 
 ### Màn hình
 
-| Route | Màn hình | Web |
-|---|---|:-:|
-| `/login`, `/register` | Đăng nhập / Đăng ký | ✅ |
-| `/` | Tổng quan | ✅ |
-| `/assets`, `/assets/new`, `/assets/:code` | Danh mục, thêm/sửa tài sản | ✅ |
-| `/reports`, `/reports/preview` | Báo cáo, xem trước PDF | ✅ |
-| `/locations`, `/settings` | Địa điểm, Cài đặt | ✅ |
-| `/scanner` | Quét mã + Edge AI | ❌ |
-| `/audit-form` | Lập phiếu kiểm kê | ❌ |
-| `/signature` | Ký xác nhận | ❌ |
-| `/sync`, `/sync/conflicts` | Đồng bộ, đối chiếu xung đột | ❌ |
+Tất cả màn hình đều đã hoàn thành. App hiện trường (iOS / Android / macOS) có đủ 9 nhóm màn. Bản web là trung tâm quản lý nên **cố ý không có** 4 màn làm việc ngoài hiện trường: router tự chuyển các route này về trang chủ (`fieldOnlyPaths` trong `lib/core/platform/app_mode.dart`).
+
+| Route | Màn hình | App hiện trường | Bản web |
+|---|---|:-:|:-:|
+| `/login`, `/register` | Đăng nhập / Đăng ký | ✅ | ✅ |
+| `/` | Tổng quan | ✅ | ✅ |
+| `/assets`, `/assets/new`, `/assets/:code` | Danh mục, thêm/sửa tài sản | ✅ | ✅ |
+| `/reports`, `/reports/preview` | Báo cáo, xem trước PDF | ✅ | ✅ |
+| `/locations`, `/settings` | Địa điểm, Cài đặt | ✅ | ✅ |
+| `/scanner` | Quét mã + Edge AI | ✅ | — ¹ |
+| `/audit-form` | Lập phiếu kiểm kê | ✅ | — ² |
+| `/signature` | Ký xác nhận | ✅ | — ² |
+| `/sync`, `/sync/conflicts` | Đồng bộ, đối chiếu xung đột | ✅ | — ³ |
+
+**—** = không dùng trên web theo thiết kế, không phải tính năng còn thiếu.
+1. Trình duyệt không chạy được TFLite (cần `dart:ffi`), và việc quét cần camera của thiết bị hiện trường.
+2. Phiếu phải lưu ngoại tuyến vào Isar trước rồi mới ký, mà bản web không dùng Isar.
+3. Bản web đọc và ghi thẳng lên Supabase, không có dữ liệu ngoại tuyến cần đồng bộ.
 
 ### Pipeline Edge AI
 
