@@ -2,59 +2,59 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project
+## Dự án
 
-Fieldline — a Flutter field-inventory app (course capstone). The field app (iOS/Android/macOS) scans QR/barcodes, runs a YOLOv8s TFLite model on-device, records audits offline in Isar, captures signatures and evidence photos, and syncs to Supabase. The **web build is a management console** that reads/writes Supabase directly (no Isar, no camera, no AI). README.md (Vietnamese) is the authoritative feature/setup doc; code comments, docs and commit messages are in Vietnamese.
+Fieldline — app Flutter kiểm kê tài sản hiện trường (đồ án cuối kỳ). App hiện trường (iOS/Android/macOS) quét QR/barcode, chạy mô hình YOLOv8s TFLite ngay trên máy, lập phiếu kiểm kê ngoại tuyến bằng Isar, ký xác nhận, chụp ảnh minh chứng rồi đồng bộ lên Supabase. **Bản web là trung tâm quản lý**, đọc/ghi thẳng trên Supabase (không Isar, không camera, không AI). README.md là tài liệu chính về tính năng và cài đặt. Comment trong code, tài liệu và commit message đều viết bằng tiếng Việt.
 
-## Commands
+## Lệnh thường dùng
 
 ```bash
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # regenerate *.g.dart after changing @riverpod / Isar models
+dart run build_runner build --delete-conflicting-outputs   # sinh lại *.g.dart khi sửa @riverpod / model Isar
 flutter analyze
-flutter test                                               # all tests
-flutter test test/features/offline_audit/auto_sync_test.dart       # one file
-flutter test --plain-name "substring of test name"                 # one test
-flutter run                  # field mode (mobile/macOS)
-flutter run -d chrome        # web console mode
+flutter test                                               # chạy toàn bộ test
+flutter test test/features/offline_audit/auto_sync_test.dart       # một file
+flutter test --plain-name "một phần tên test"                      # một test
+flutter run                  # chế độ hiện trường (mobile/macOS)
+flutter run -d chrome        # bản web quản lý
 flutter build apk --release
 ```
 
-- Generated `*.g.dart` files **are committed**; rerun build_runner and commit them when annotated code changes.
-- `lib/core/network/supabase_config.dart` is gitignored — copy from `supabase_config.dart.example`. App boots with empty values but login is mandatory.
-- iOS: Impeller is disabled in `Info.plist` (camera black-screen workaround); camera/AI need a physical device.
+- Các file sinh tự động `*.g.dart` **được commit** vào repo; sửa code có annotation thì chạy lại build_runner và commit kèm.
+- `lib/core/network/supabase_config.dart` nằm trong `.gitignore`, tạo từ `supabase_config.dart.example`. Để trống app vẫn khởi động, nhưng đăng nhập là bắt buộc.
+- iOS: Impeller đã tắt trong `Info.plist` (tránh màn camera bị đen); camera và AI cần máy thật.
 
-## Architecture
+## Kiến trúc
 
-Feature-first Clean Architecture under `lib/features/<feature>/{domain,data,presentation}`; shared infra in `lib/core/` (router, theme, Isar init, Supabase provider, connectivity, PDF generator, `FieldlineShell` navigation).
+Clean Architecture chia theo feature: `lib/features/<feature>/{domain,data,presentation}`. Phần dùng chung nằm ở `lib/core/` (router, theme, khởi tạo Isar, provider Supabase, trạng thái mạng, sinh PDF, khung điều hướng `FieldlineShell`).
 
-### Two app modes from one codebase
-This is the key cross-cutting design — read these together:
-- `lib/main.dart`: web → `ProviderScope(overrides: consoleOverrides())`, no Isar; mobile → opens Isar and overrides `isarInstanceProvider`.
-- `lib/core/platform/app_mode.dart`: `AppMode.field` / `AppMode.console` (`appModeProvider`, overridable in tests) and `fieldOnlyPaths` (`/scanner`, `/audit-form`, `/signature`, `/sync`).
-- `lib/core/router/app_router.dart`: GoRouter with auth redirect, redirects field-only paths to `/` in console mode, `ShellRoute` for the main shell.
-- `lib/features/cloud_console/console_overrides.dart`: swaps `auditRecordsProvider` (polls Supabase every minute), `evidencePhotoStoreProvider` (URL-based) and `assetCatalogRepositoryProvider` (cloud repo) so dashboard/assets/reports/locations/settings screens are reused unchanged on web.
-- `edge_vision/data/repositories/vision_ai_providers.dart` uses a conditional export (`dart.library.js_interop`) to replace the TFLite repository with an unsupported stub on web (no `dart:ffi`).
+### Hai chế độ app trên cùng một mã nguồn
+Đây là thiết kế xuyên suốt quan trọng nhất, cần đọc các file sau cùng nhau:
+- `lib/main.dart`: web → `ProviderScope(overrides: consoleOverrides())`, không mở Isar; mobile → mở Isar và override `isarInstanceProvider`.
+- `lib/core/platform/app_mode.dart`: `AppMode.field` / `AppMode.console` (`appModeProvider`, test có thể override) và `fieldOnlyPaths` (`/scanner`, `/audit-form`, `/signature`, `/sync`).
+- `lib/core/router/app_router.dart`: GoRouter có auth redirect, ở chế độ console thì chuyển các route chỉ dành cho hiện trường về `/`, dùng `ShellRoute` cho khung chính.
+- `lib/features/cloud_console/console_overrides.dart`: thay `auditRecordsProvider` (tải lại từ Supabase mỗi phút), `evidencePhotoStoreProvider` (ảnh theo URL) và `assetCatalogRepositoryProvider` (repo cloud), nhờ đó các màn Tổng quan / Tài sản / Báo cáo / Địa điểm / Cài đặt dùng lại nguyên trên web.
+- `edge_vision/data/repositories/vision_ai_providers.dart` dùng conditional export (`dart.library.js_interop`) để thay repository TFLite bằng bản báo "không hỗ trợ" trên web (web không có `dart:ffi`).
 
-When adding a screen or provider used on both platforms, make its data source a provider that `consoleOverrides()` can replace rather than branching on `kIsWeb` inside widgets.
+Khi thêm màn hình hoặc provider dùng cho cả hai nền tảng, hãy đưa nguồn dữ liệu vào một provider mà `consoleOverrides()` thay được, thay vì rẽ nhánh `kIsWeb` trong widget.
 
-### Offline-first audit + sync (`features/offline_audit`)
-- Every audit is written to Isar (`AuditRecordModel`) first. Unsigned records are **drafts**: never synced, excluded from reports.
-- `SyncController` pushes signed, unsynced records to Supabase (`audit_records` table, `signatures` / `evidence` storage buckets). `AutoSyncController` triggers on connectivity changes with a 3s debounce and exponential retry 30s → 5min; settings persisted via `SyncSettingsStore` (shared_preferences).
-- Asset catalog (`features/asset_catalog`) keeps `baseJson` / `conflictJson` on `AssetModel` for three-way merge (`domain/asset_merge.dart`); conflicts surface on `/sync/conflicts`.
+### Phiếu kiểm kê offline-first và đồng bộ (`features/offline_audit`)
+- Mọi phiếu được ghi vào Isar (`AuditRecordModel`) trước. Phiếu chưa ký là **bản nháp**: không bao giờ đồng bộ, không vào báo cáo.
+- `SyncController` đẩy các phiếu đã ký mà chưa đồng bộ lên Supabase (bảng `audit_records`, bucket `signatures` / `evidence`). `AutoSyncController` chạy khi trạng thái mạng thay đổi, debounce 3 giây, retry lùi dần từ 30 giây đến tối đa 5 phút; thiết lập lưu qua `SyncSettingsStore` (shared_preferences).
+- Danh mục tài sản (`features/asset_catalog`) lưu `baseJson` / `conflictJson` trên `AssetModel` để đối chiếu 3 bên (`domain/asset_merge.dart`); xung đột hiện ở `/sync/conflicts`.
 
-### Edge AI pipeline (`features/edge_vision`, `core/ai_pipeline/ai_config.dart`)
-- Model `assets/models/object_detection.tflite`, input 1×3×640×640 NCHW, output 1×13×8400 (cx,cy,w,h + 9 class scores; labels in `labels.txt`).
-- Only the centre square (`AiConfig.cropFraction` = 70% of short side, matching the green scan frame) is fed to the model. Thresholds: 0.5 equipment, 0.7 damage classes (0,1,2,5). New frames are dropped while inference is running.
-- iOS uses the Metal GPU delegate with CPU fallback.
-- `mobile_scanner` is a **locally patched copy** in `third_party/mobile_scanner` (wired via `dependency_overrides` in pubspec). The iOS/macOS patch emits frames without barcodes (~2 fps) and an `aiInput` key with the pre-cropped 640×640 RGB buffer. Android is **not** patched (AI only runs when a code is visible). See `third_party/mobile_scanner/PATCH_NOTES.md` before touching it.
+### Pipeline Edge AI (`features/edge_vision`, `core/ai_pipeline/ai_config.dart`)
+- Mô hình `assets/models/object_detection.tflite`, input 1×3×640×640 (NCHW), output 1×13×8400 (cx, cy, w, h + điểm của 9 lớp; nhãn trong `labels.txt`).
+- Chỉ ô vuông giữa khung hình (`AiConfig.cropFraction` = 70% cạnh ngắn, khớp khung xanh trên màn quét) được đưa vào mô hình. Ngưỡng tin cậy: 0.5 cho thiết bị, 0.7 cho nhóm hư hỏng (lớp 0, 1, 2, 5). Frame mới bị bỏ qua khi AI đang xử lý.
+- iOS chạy bằng GPU delegate Metal, lỗi thì tự chuyển sang CPU.
+- `mobile_scanner` là **bản vá cục bộ** trong `third_party/mobile_scanner` (khai báo qua `dependency_overrides` trong pubspec). Bản vá iOS/macOS vẫn gửi frame khi không có mã (~2 frame/giây) và gửi kèm khoá `aiInput` chứa ảnh RGB 640×640 đã cắt sẵn. Android **chưa vá** (AI chỉ chạy khi camera thấy mã). Đọc `third_party/mobile_scanner/PATCH_NOTES.md` trước khi sửa.
 
-### State management
-Riverpod 3 — mix of generated providers (`@riverpod` + `*.g.dart`) and hand-written `Provider`/`AsyncNotifier`. Tests inject fakes via `ProviderScope`/`ProviderContainer` overrides (e.g. `isarAuditRepositoryProvider`, `syncRepositoryProvider`, `authRepositoryProvider`); shared fakes live in `test/helpers/`.
+### Quản lý state
+Riverpod 3, dùng lẫn provider sinh tự động (`@riverpod` + `*.g.dart`) và `Provider`/`AsyncNotifier` viết tay. Test truyền fake qua override của `ProviderScope`/`ProviderContainer` (ví dụ `isarAuditRepositoryProvider`, `syncRepositoryProvider`, `authRepositoryProvider`); các fake dùng chung nằm trong `test/helpers/`.
 
 ### Supabase
-Schema changes go in `supabase/migrations/` (timestamp-prefixed, applied in name order); sample data in `supabase/seed/`. RLS: authenticated users only; audit records editable only by `created_by`.
+Thay đổi schema đặt trong `supabase/migrations/` (đặt tên theo timestamp, chạy theo thứ tự tên file); dữ liệu mẫu ở `supabase/seed/`. RLS: chỉ người đã đăng nhập truy cập được dữ liệu; phiếu kiểm kê chỉ người tạo (`created_by`) được sửa.
 
-## Git workflow
+## Quy trình Git
 
-Branches: `main` ← `develop` ← `feature/sprint<S>-card<N>-tv<K>`; changes reach `develop` via PR. Conventional Commits with Vietnamese descriptions, e.g. `feat(card26): ...`, `fix(ai): ...`. `HUONG_DAN_GIT_NHOM.md` asks to stage specific files rather than `git add .`.
+Nhánh: `main` ← `develop` ← `feature/sprint<S>-card<N>-tv<K>`; thay đổi vào `develop` qua Pull Request. Commit theo Conventional Commits, mô tả bằng tiếng Việt, ví dụ `feat(card26): ...`, `fix(ai): ...`. `HUONG_DAN_GIT_NHOM.md` yêu cầu `git add` từng file cụ thể, không dùng `git add .`.
