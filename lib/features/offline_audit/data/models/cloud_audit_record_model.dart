@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'audit_record_model.dart';
@@ -49,6 +50,15 @@ class CloudAuditRecordModel {
   /// Vai trò của người ký.
   final String? signerRole;
 
+  /// Đánh giá hư hỏng bề mặt (cột jsonb `damage_assessment`).
+  final Map<String, dynamic>? damageAssessment;
+
+  /// Tổng chi phí sửa chữa ước tính (VND).
+  final double? estimatedCost;
+
+  /// Chỉ số hư hại 0..100.
+  final double? damageIndex;
+
   const CloudAuditRecordModel({
     required this.id,
     required this.scanCode,
@@ -64,6 +74,9 @@ class CloudAuditRecordModel {
     this.photoUrls = const [],
     this.signerName,
     this.signerRole,
+    this.damageAssessment,
+    this.estimatedCost,
+    this.damageIndex,
   });
 
   /// Chuyển đổi từ Map / JSON trả về từ Supabase PostgREST
@@ -90,6 +103,11 @@ class CloudAuditRecordModel {
         for (final u in (json['photo_urls'] as List?) ?? const [])
           if (u is String) u,
       ],
+      damageAssessment: json['damage_assessment'] is Map<String, dynamic>
+          ? json['damage_assessment'] as Map<String, dynamic>
+          : null,
+      estimatedCost: (json['estimated_cost'] as num?)?.toDouble(),
+      damageIndex: (json['damage_index'] as num?)?.toDouble(),
     );
   }
 
@@ -111,6 +129,10 @@ class CloudAuditRecordModel {
       if (signerRole != null) 'signer_role': signerRole,
       // Chỉ gửi khi có ảnh: phiếu không ảnh vẫn đồng bộ được trước khi bảng có cột này.
       if (photoUrls.isNotEmpty) 'photo_urls': photoUrls,
+      // Tương tự: chỉ gửi khi phiếu có đánh giá hư hỏng.
+      if (damageAssessment != null) 'damage_assessment': damageAssessment,
+      if (estimatedCost != null) 'estimated_cost': estimatedCost,
+      if (damageIndex != null) 'damage_index': damageIndex,
     };
   }
 
@@ -136,6 +158,11 @@ class CloudAuditRecordModel {
       signerName: record.signerName,
       signerRole: record.signerRole,
       photoUrls: photoUrls,
+      damageAssessment: record.damageAssessmentJson == null
+          ? null
+          : jsonDecode(record.damageAssessmentJson!) as Map<String, dynamic>,
+      estimatedCost: record.estimatedCost,
+      damageIndex: record.damageIndex,
     );
   }
 
@@ -163,6 +190,9 @@ class CloudAuditRecordModel {
     String? signerName,
     String? signerRole,
     List<String>? photoUrls,
+    Map<String, dynamic>? damageAssessment,
+    double? estimatedCost,
+    double? damageIndex,
   }) {
     return CloudAuditRecordModel(
       id: id ?? this.id,
@@ -179,12 +209,15 @@ class CloudAuditRecordModel {
       signerName: signerName ?? this.signerName,
       signerRole: signerRole ?? this.signerRole,
       photoUrls: photoUrls ?? this.photoUrls,
+      damageAssessment: damageAssessment ?? this.damageAssessment,
+      estimatedCost: estimatedCost ?? this.estimatedCost,
+      damageIndex: damageIndex ?? this.damageIndex,
     );
   }
 
   @override
   String toString() {
-    return 'CloudAuditRecordModel(id: $id, scanCode: $scanCode, aiDetectedLabel: $aiDetectedLabel, quantity: $quantity, assetName: $assetName, area: $area, location: $location, condition: $condition, notes: $notes, timestamp: $timestamp, signatureUrl: $signatureUrl, signerName: $signerName, signerRole: $signerRole, photoUrls: $photoUrls)';
+    return 'CloudAuditRecordModel(id: $id, scanCode: $scanCode, aiDetectedLabel: $aiDetectedLabel, quantity: $quantity, assetName: $assetName, area: $area, location: $location, condition: $condition, notes: $notes, timestamp: $timestamp, signatureUrl: $signatureUrl, signerName: $signerName, signerRole: $signerRole, photoUrls: $photoUrls, estimatedCost: $estimatedCost, damageIndex: $damageIndex)';
   }
 
   @override
@@ -204,7 +237,15 @@ class CloudAuditRecordModel {
         other.signatureUrl == signatureUrl &&
         other.signerName == signerName &&
         other.signerRole == signerRole &&
-        _listEquals(other.photoUrls, photoUrls);
+        _listEquals(other.photoUrls, photoUrls) &&
+        _jsonEquals(other.damageAssessment, damageAssessment) &&
+        other.estimatedCost == estimatedCost &&
+        other.damageIndex == damageIndex;
+  }
+
+  static bool _jsonEquals(Map<String, dynamic>? a, Map<String, dynamic>? b) {
+    if (a == null || b == null) return a == b;
+    return jsonEncode(a) == jsonEncode(b);
   }
 
   static bool _listEquals(List<String> a, List<String> b) {
@@ -232,6 +273,9 @@ class CloudAuditRecordModel {
       signerName,
       signerRole,
       Object.hashAll(photoUrls),
+      damageAssessment == null ? null : jsonEncode(damageAssessment),
+      estimatedCost,
+      damageIndex,
     );
   }
 }

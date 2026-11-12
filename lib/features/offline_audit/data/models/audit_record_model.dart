@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:isar_plus/isar_plus.dart';
+
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/surface_assessment.dart';
 
 part 'audit_record_model.g.dart';
 
@@ -63,6 +67,36 @@ class AuditRecordModel {
 
   /// Bản nháp = phiếu chưa có chữ ký xác nhận. Bản nháp chỉ nằm trên máy:
   /// không đồng bộ, không vào báo cáo và chưa tính là đã kiểm kê.
+  /// Kết quả đánh giá hư hỏng bề mặt ([SurfaceAssessment]) dạng JSON, gồm
+  /// cả đơn giá tại thời điểm kiểm kê. `null` với phiếu không đánh giá.
+  String? damageAssessmentJson;
+
+  /// Tổng chi phí sửa chữa ước tính (VND), lưu riêng để thống kê nhanh.
+  double? estimatedCost;
+
+  /// Chỉ số hư hại của bề mặt (0..100).
+  double? damageIndex;
+
+  /// Đánh giá hư hỏng đã lưu, hoặc `null`.
+  @ignore
+  SurfaceAssessment? get surfaceAssessment {
+    final json = damageAssessmentJson;
+    if (json == null) return null;
+    final value = jsonDecode(json);
+    return value is Map<String, dynamic>
+        ? SurfaceAssessment.fromJson(value)
+        : null;
+  }
+
+  /// Ghi đánh giá hư hỏng vào phiếu (hoặc xoá khi [assessment] là `null`).
+  void applyAssessment(SurfaceAssessment? assessment) {
+    damageAssessmentJson = assessment == null
+        ? null
+        : jsonEncode(assessment.toJson());
+    estimatedCost = assessment?.totalCost;
+    damageIndex = assessment?.damageIndex;
+  }
+
   @ignore
   bool get isDraft =>
       (signatureBytes == null || signatureBytes!.isEmpty) &&
@@ -92,6 +126,9 @@ class AuditRecordModel {
     ..signerName = signerName
     ..signerRole = signerRole
     ..photoFiles = photoFiles
+    ..damageAssessmentJson = damageAssessmentJson
+    ..estimatedCost = estimatedCost
+    ..damageIndex = damageIndex
     ..signatureUrl = signatureUrl
     ..timestamp = timestamp
     ..isSynced = isSynced;

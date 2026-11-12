@@ -176,8 +176,9 @@ Bước này giả định bảng `public.audit_records` và bucket `signatures`
 | `20261026090000_create_assets` | Tạo bảng `assets` |
 | `20261028090000_add_audit_evidence_photos` | Thêm `photo_urls` và bucket `evidence` |
 | `20261030090000_auth_profiles_and_rls` | Tạo bảng `profiles`, thêm `created_by`, siết RLS theo tài khoản |
+| `20261112090000_damage_assessment_and_repair_rates` | Tạo bảng đơn giá `repair_cost_rates` (chỉ admin sửa); thêm `damage_assessment`, `estimated_cost`, `damage_index` cho phiếu và `surface_area_m2` cho tài sản |
 
-Nếu cần dữ liệu mẫu, chạy thêm `supabase/seed/assets_sample.sql`.
+Nếu cần dữ liệu mẫu, chạy thêm `supabase/seed/assets_sample.sql` và `supabase/seed/repair_cost_rates_sample.sql` (bảng đơn giá **minh hoạ**, không phải giá thật).
 
 ### 4. Chạy
 

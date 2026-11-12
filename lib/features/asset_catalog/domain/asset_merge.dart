@@ -10,6 +10,7 @@ const assetFieldLabels = <String, String>{
   'area': 'Khu vực',
   'location': 'Vị trí',
   'quantity': 'Số lượng',
+  'surface_area_m2': 'Diện tích bề mặt (m²)',
   'status': 'Tình trạng',
   'last_audit_at': 'Lần kiểm kê gần nhất',
 };

@@ -35,6 +35,9 @@ final AuditRecordModelSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'photoFiles', type: IsarType.stringList),
       IsarPropertySchema(name: 'signatureUrl', type: IsarType.string),
       IsarPropertySchema(name: 'timestamp', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'damageAssessmentJson', type: IsarType.string),
+      IsarPropertySchema(name: 'estimatedCost', type: IsarType.double),
+      IsarPropertySchema(name: 'damageIndex', type: IsarType.double),
       IsarPropertySchema(name: 'isSynced', type: IsarType.bool),
     ],
     indexes: [],
@@ -159,7 +162,17 @@ int serializeAuditRecordModel(IsarWriter writer, AuditRecordModel object) {
     14,
     object.timestamp?.toUtc().microsecondsSinceEpoch ?? -9223372036854775808,
   );
-  IsarCore.writeBool(writer, 15, value: object.isSynced);
+  {
+    final value = object.damageAssessmentJson;
+    if (value == null) {
+      IsarCore.writeNull(writer, 15);
+    } else {
+      IsarCore.writeString(writer, 15, value);
+    }
+  }
+  IsarCore.writeDouble(writer, 16, object.estimatedCost ?? double.nan);
+  IsarCore.writeDouble(writer, 17, object.damageIndex ?? double.nan);
+  IsarCore.writeBool(writer, 18, value: object.isSynced);
   return object.id;
 }
 
@@ -227,7 +240,24 @@ AuditRecordModel deserializeAuditRecordModel(IsarReader reader) {
       ).toLocal();
     }
   }
-  object.isSynced = IsarCore.readBool(reader, 15);
+  object.damageAssessmentJson = IsarCore.readString(reader, 15);
+  {
+    final value = IsarCore.readDouble(reader, 16);
+    if (value.isNaN) {
+      object.estimatedCost = null;
+    } else {
+      object.estimatedCost = value;
+    }
+  }
+  {
+    final value = IsarCore.readDouble(reader, 17);
+    if (value.isNaN) {
+      object.damageIndex = null;
+    } else {
+      object.damageIndex = value;
+    }
+  }
+  object.isSynced = IsarCore.readBool(reader, 18);
   return object;
 }
 
@@ -309,7 +339,27 @@ dynamic deserializeAuditRecordModelProp(IsarReader reader, int property) {
         }
       }
     case 15:
-      return IsarCore.readBool(reader, 15);
+      return IsarCore.readString(reader, 15);
+    case 16:
+      {
+        final value = IsarCore.readDouble(reader, 16);
+        if (value.isNaN) {
+          return null;
+        } else {
+          return value;
+        }
+      }
+    case 17:
+      {
+        final value = IsarCore.readDouble(reader, 17);
+        if (value.isNaN) {
+          return null;
+        } else {
+          return value;
+        }
+      }
+    case 18:
+      return IsarCore.readBool(reader, 18);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -330,6 +380,9 @@ sealed class _AuditRecordModelUpdate {
     String? signerRole,
     String? signatureUrl,
     DateTime? timestamp,
+    String? damageAssessmentJson,
+    double? estimatedCost,
+    double? damageIndex,
     bool? isSynced,
   });
 }
@@ -354,6 +407,9 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
     Object? signerRole = ignore,
     Object? signatureUrl = ignore,
     Object? timestamp = ignore,
+    Object? damageAssessmentJson = ignore,
+    Object? estimatedCost = ignore,
+    Object? damageIndex = ignore,
     Object? isSynced = ignore,
   }) {
     return collection.updateProperties(
@@ -371,7 +427,11 @@ class _AuditRecordModelUpdateImpl implements _AuditRecordModelUpdate {
             if (signerRole != ignore) 11: signerRole as String?,
             if (signatureUrl != ignore) 13: signatureUrl as String?,
             if (timestamp != ignore) 14: timestamp as DateTime?,
-            if (isSynced != ignore) 15: isSynced as bool?,
+            if (damageAssessmentJson != ignore)
+              15: damageAssessmentJson as String?,
+            if (estimatedCost != ignore) 16: estimatedCost as double?,
+            if (damageIndex != ignore) 17: damageIndex as double?,
+            if (isSynced != ignore) 18: isSynced as bool?,
           },
         ) >
         0;
@@ -393,6 +453,9 @@ sealed class _AuditRecordModelUpdateAll {
     String? signerRole,
     String? signatureUrl,
     DateTime? timestamp,
+    String? damageAssessmentJson,
+    double? estimatedCost,
+    double? damageIndex,
     bool? isSynced,
   });
 }
@@ -417,6 +480,9 @@ class _AuditRecordModelUpdateAllImpl implements _AuditRecordModelUpdateAll {
     Object? signerRole = ignore,
     Object? signatureUrl = ignore,
     Object? timestamp = ignore,
+    Object? damageAssessmentJson = ignore,
+    Object? estimatedCost = ignore,
+    Object? damageIndex = ignore,
     Object? isSynced = ignore,
   }) {
     return collection.updateProperties(id, {
@@ -432,7 +498,10 @@ class _AuditRecordModelUpdateAllImpl implements _AuditRecordModelUpdateAll {
       if (signerRole != ignore) 11: signerRole as String?,
       if (signatureUrl != ignore) 13: signatureUrl as String?,
       if (timestamp != ignore) 14: timestamp as DateTime?,
-      if (isSynced != ignore) 15: isSynced as bool?,
+      if (damageAssessmentJson != ignore) 15: damageAssessmentJson as String?,
+      if (estimatedCost != ignore) 16: estimatedCost as double?,
+      if (damageIndex != ignore) 17: damageIndex as double?,
+      if (isSynced != ignore) 18: isSynced as bool?,
     });
   }
 }
@@ -458,6 +527,9 @@ sealed class _AuditRecordModelQueryUpdate {
     String? signerRole,
     String? signatureUrl,
     DateTime? timestamp,
+    String? damageAssessmentJson,
+    double? estimatedCost,
+    double? damageIndex,
     bool? isSynced,
   });
 }
@@ -482,6 +554,9 @@ class _AuditRecordModelQueryUpdateImpl implements _AuditRecordModelQueryUpdate {
     Object? signerRole = ignore,
     Object? signatureUrl = ignore,
     Object? timestamp = ignore,
+    Object? damageAssessmentJson = ignore,
+    Object? estimatedCost = ignore,
+    Object? damageIndex = ignore,
     Object? isSynced = ignore,
   }) {
     return query.updateProperties(limit: limit, {
@@ -497,7 +572,10 @@ class _AuditRecordModelQueryUpdateImpl implements _AuditRecordModelQueryUpdate {
       if (signerRole != ignore) 11: signerRole as String?,
       if (signatureUrl != ignore) 13: signatureUrl as String?,
       if (timestamp != ignore) 14: timestamp as DateTime?,
-      if (isSynced != ignore) 15: isSynced as bool?,
+      if (damageAssessmentJson != ignore) 15: damageAssessmentJson as String?,
+      if (estimatedCost != ignore) 16: estimatedCost as double?,
+      if (damageIndex != ignore) 17: damageIndex as double?,
+      if (isSynced != ignore) 18: isSynced as bool?,
     });
   }
 }
@@ -531,6 +609,9 @@ class _AuditRecordModelQueryBuilderUpdateImpl
     Object? signerRole = ignore,
     Object? signatureUrl = ignore,
     Object? timestamp = ignore,
+    Object? damageAssessmentJson = ignore,
+    Object? estimatedCost = ignore,
+    Object? damageIndex = ignore,
     Object? isSynced = ignore,
   }) {
     final q = query.build();
@@ -548,7 +629,10 @@ class _AuditRecordModelQueryBuilderUpdateImpl
         if (signerRole != ignore) 11: signerRole as String?,
         if (signatureUrl != ignore) 13: signatureUrl as String?,
         if (timestamp != ignore) 14: timestamp as DateTime?,
-        if (isSynced != ignore) 15: isSynced as bool?,
+        if (damageAssessmentJson != ignore) 15: damageAssessmentJson as String?,
+        if (estimatedCost != ignore) 16: estimatedCost as double?,
+        if (damageIndex != ignore) 17: damageIndex as double?,
+        if (isSynced != ignore) 18: isSynced as bool?,
       });
     } finally {
       q.close();
@@ -2578,10 +2662,347 @@ extension AuditRecordModelQueryFilter
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 15));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 15));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonGreaterThanOrEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 15, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonLessThanOrEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 15,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 15,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 15,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 15, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageAssessmentJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 15, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 16));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 16));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostEqualTo(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 16, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostGreaterThan(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(property: 16, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostGreaterThanOrEqualTo(
+    double? value, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 16, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostLessThan(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 16, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostLessThanOrEqualTo(
+    double? value, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 16, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  estimatedCostBetween(
+    double? lower,
+    double? upper, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 16,
+          lower: lower,
+          upper: upper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 17));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 17));
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexEqualTo(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 17, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexGreaterThan(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(property: 17, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexGreaterThanOrEqualTo(
+    double? value, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 17, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexLessThan(double? value, {double epsilon = Filter.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 17, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexLessThanOrEqualTo(
+    double? value, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 17, value: value, epsilon: epsilon),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
+  damageIndexBetween(
+    double? lower,
+    double? upper, {
+    double epsilon = Filter.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 17,
+          lower: lower,
+          upper: upper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterFilterCondition>
   isSyncedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 15, value: value),
+        EqualCondition(property: 18, value: value),
       );
     });
   }
@@ -2776,16 +3197,58 @@ extension AuditRecordModelQuerySortBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByDamageAssessmentJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByDamageAssessmentJsonDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByEstimatedCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByEstimatedCostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(16, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByDamageIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(17);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  sortByDamageIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(17, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(15);
+      return query.addSortBy(18);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   sortByIsSyncedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(15, sort: Sort.desc);
+      return query.addSortBy(18, sort: Sort.desc);
     });
   }
 }
@@ -2976,16 +3439,58 @@ extension AuditRecordModelQuerySortThenBy
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByDamageAssessmentJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByDamageAssessmentJsonDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(15, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByEstimatedCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByEstimatedCostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(16, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByDamageIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(17);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
+  thenByDamageIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(17, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(15);
+      return query.addSortBy(18);
     });
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterSortBy>
   thenByIsSyncedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(15, sort: Sort.desc);
+      return query.addSortBy(18, sort: Sort.desc);
     });
   }
 }
@@ -3091,9 +3596,30 @@ extension AuditRecordModelQueryWhereDistinct
   }
 
   QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByDamageAssessmentJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(15, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByEstimatedCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
+  distinctByDamageIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(17);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, AuditRecordModel, QAfterDistinct>
   distinctByIsSynced() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(15);
+      return query.addDistinctBy(18);
     });
   }
 }
@@ -3195,9 +3721,30 @@ extension AuditRecordModelQueryProperty1
     });
   }
 
-  QueryBuilder<AuditRecordModel, bool, QAfterProperty> isSyncedProperty() {
+  QueryBuilder<AuditRecordModel, String?, QAfterProperty>
+  damageAssessmentJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(15);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, double?, QAfterProperty>
+  estimatedCostProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, double?, QAfterProperty>
+  damageIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(17);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, bool, QAfterProperty> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(18);
     });
   }
 }
@@ -3305,9 +3852,30 @@ extension AuditRecordModelQueryProperty2<R>
     });
   }
 
-  QueryBuilder<AuditRecordModel, (R, bool), QAfterProperty> isSyncedProperty() {
+  QueryBuilder<AuditRecordModel, (R, String?), QAfterProperty>
+  damageAssessmentJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(15);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, double?), QAfterProperty>
+  estimatedCostProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, double?), QAfterProperty>
+  damageIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(17);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R, bool), QAfterProperty> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(18);
     });
   }
 }
@@ -3418,10 +3986,31 @@ extension AuditRecordModelQueryProperty3<R1, R2>
     });
   }
 
+  QueryBuilder<AuditRecordModel, (R1, R2, String?), QOperations>
+  damageAssessmentJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(15);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, double?), QOperations>
+  estimatedCostProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(16);
+    });
+  }
+
+  QueryBuilder<AuditRecordModel, (R1, R2, double?), QOperations>
+  damageIndexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(17);
+    });
+  }
+
   QueryBuilder<AuditRecordModel, (R1, R2, bool), QOperations>
   isSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(15);
+      return query.addProperty(18);
     });
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -61,6 +62,11 @@ List<AuditRecordModel> cloudRowsToRecords(List<Map<String, dynamic>> rows) {
               ? c.signatureUrl
               : 'cloud:${c.id}'
           ..photoFiles = c.photoUrls.isEmpty ? null : c.photoUrls
+          ..damageAssessmentJson = c.damageAssessment == null
+              ? null
+              : jsonEncode(c.damageAssessment)
+          ..estimatedCost = c.estimatedCost
+          ..damageIndex = c.damageIndex
           ..timestamp = DateTime.tryParse(c.timestamp)?.toLocal()
           ..isSynced = true;
       }(),
