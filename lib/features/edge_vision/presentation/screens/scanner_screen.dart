@@ -87,7 +87,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     final result = uiState.latestResult;
     final guess = _AiGuess.parse(uiState.detectedObjects);
     if (result == null && guess == null) {
-      showFlSnack(context, 'Chưa có kết quả. Đưa mã hoặc thiết bị vào khung.');
+      showFlSnack(
+        context,
+        'Chưa có kết quả. Đưa thẻ QR và vùng hư hỏng vào khung.',
+      );
       return;
     }
     final code = result == null
@@ -226,7 +229,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
           ),
           const Gap(14),
           const Text(
-            'Đặt thiết bị trong khung, giữ máy ổn định và đủ ánh sáng.',
+            'Chụp thẳng góc, thẻ QR và vùng hư hỏng cùng nằm trong khung, đủ ánh sáng.',
             style: TextStyle(fontSize: 12, color: FlColors.muted),
           ),
         ],
@@ -253,7 +256,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
             onPressed: _enterCodeManually,
             child: const Align(
               alignment: Alignment.centerLeft,
-              child: Text('Chọn loại thiết bị khác'),
+              child: Text('Nhập mã bề mặt thủ công'),
             ),
           ),
           const Gap(14),
@@ -270,7 +273,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     return DesktopPage(
       heading: DesktopPageHeading(
         title: 'Quét mã & nhận diện AI',
-        subtitle: 'Nhận diện thiết bị tại hiện trường và xác nhận trước khi ghi vào phiếu.',
+        subtitle: 'Quét thẻ QR trên bề mặt, AI đo hư hỏng; xác nhận trước khi ghi vào phiếu.',
         action: FilledButton.icon(
           onPressed: _enterCodeManually,
           icon: const Icon(Icons.add_rounded, size: 18),

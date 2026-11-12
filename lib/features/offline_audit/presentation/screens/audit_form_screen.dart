@@ -12,6 +12,7 @@ import 'package:field_inventory_edge_ai/features/canvas_signature/presentation/s
 import 'package:field_inventory_edge_ai/features/damage_assessment/data/repair_rate_repository.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_calculator.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_measurer.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/damage_enums.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/surface_assessment.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/surface_assessment_draft.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/surface_assessment_section.dart';
@@ -115,7 +116,15 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       final asset = await ref
           .read(assetCatalogRepositoryProvider)
           .findByCode(code.trim());
-      if (mounted) _assessment.suggestSurfaceArea(asset?.surfaceAreaM2);
+      if (!mounted || asset == null) return;
+      _assessment.suggestSurfaceArea(asset.surfaceAreaM2);
+      // Loại/chất liệu trong danh mục trùng tên chất liệu: dùng làm mặc định.
+      final category = asset.category?.trim().toLowerCase();
+      for (final m in SurfaceMaterial.values) {
+        if (category == m.label.toLowerCase() || category == m.code) {
+          _assessment.setMaterial(m);
+        }
+      }
     } catch (e) {
       // Bản web / chưa có danh mục: người kiểm kê tự nhập diện tích.
       debugPrint('[AuditForm] Không tra được diện tích bề mặt: $e');
@@ -327,10 +336,10 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
               const Gap(16),
               Expanded(
                 child: _Field(
-                  label: 'Loại thiết bị *',
+                  label: 'Hạng mục / loại *',
                   controller: _aiLabelController,
                   hint: 'Ví dụ: Động cơ điện',
-                  validator: (v) => _required(v, 'Vui lòng nhập loại thiết bị'),
+                  validator: (v) => _required(v, 'Vui lòng nhập hạng mục'),
                 ),
               ),
             ],
@@ -346,9 +355,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             children: [
               Expanded(
                 child: _Field(
-                  label: 'Khu vực kiểm kê',
+                  label: 'Tòa nhà / tầng',
                   controller: _areaController,
-                  hint: 'Ví dụ: Xưởng sản xuất A',
+                  hint: 'Ví dụ: Nhà A • Tầng 2',
                 ),
               ),
               const Gap(16),
@@ -356,7 +365,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
                 child: _Field(
                   label: 'Vị trí cụ thể',
                   controller: _locationController,
-                  hint: 'Ví dụ: Dây chuyền 02 • Kệ A3',
+                  hint: 'Ví dụ: Phòng A201',
                 ),
               ),
             ],
@@ -466,7 +475,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       children: [
         if (hasAi) ...[
           const InfoBanner(
-            title: 'Thông tin thiết bị đã được điền từ kết quả AI.',
+            title: 'Thông tin đã được điền từ kết quả AI.',
             subtitle: 'Bạn có thể điều chỉnh trước khi lưu phiếu.',
             trailing: StatusPill(label: 'Bản nháp', tone: FlTone.neutral),
           ),
@@ -591,11 +600,11 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             ),
           if (widget.initialScanCode.isEmpty) const Gap(12),
           _Field(
-            label: 'Loại thiết bị *',
+            label: 'Hạng mục / loại *',
             controller: _aiLabelController,
             hint: 'Ví dụ: Máy khoan',
             onChanged: (_) => setState(() {}),
-            validator: (v) => _required(v, 'Vui lòng nhập loại thiết bị'),
+            validator: (v) => _required(v, 'Vui lòng nhập hạng mục'),
           ),
         ],
         const Gap(16),
@@ -611,9 +620,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
           children: [
             Expanded(
               child: _Field(
-                label: 'Khu vực kiểm kê',
+                label: 'Tòa nhà / tầng',
                 controller: _areaController,
-                hint: 'Khu vực A',
+                hint: 'Nhà A',
               ),
             ),
             const Gap(10),
@@ -621,7 +630,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
               child: _Field(
                 label: 'Vị trí cụ thể',
                 controller: _locationController,
-                hint: 'Kệ A3',
+                hint: 'A201',
               ),
             ),
           ],
@@ -646,7 +655,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
           onAssessmentChanged: _onAssessmentChanged,
         ),
         const Gap(22),
-        const _MobileTitle('Tình trạng thiết bị'),
+        const _MobileTitle('Tình trạng'),
         Row(
           children: [
             for (final (i, c) in AuditCondition.values.indexed) ...[

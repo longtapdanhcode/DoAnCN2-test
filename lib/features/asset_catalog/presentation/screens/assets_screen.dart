@@ -144,7 +144,7 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
 
     return DesktopPage(
       heading: DesktopPageHeading(
-        title: 'Tài sản & thiết bị',
+        title: 'Phòng & bề mặt',
         subtitle: 'Danh mục tài sản và tình trạng mới nhất từ các đợt kiểm kê.',
         action: FilledButton.icon(
           onPressed: _addAsset,
@@ -224,7 +224,7 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
                     Expanded(
                       flex: 3,
                       child: _FilterDropdown(
-                        hint: 'Tất cả khu vực',
+                        hint: 'Tất cả tòa nhà',
                         value: _area,
                         options: areas,
                         onChanged: (v) => setState(() => _area = v),
@@ -271,11 +271,8 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
                 child: const Row(
                   children: [
                     SizedBox(width: 36),
-                    Expanded(
-                      flex: 5,
-                      child: SectionLabel('Tài sản / Mã thiết bị'),
-                    ),
-                    Expanded(flex: 3, child: SectionLabel('Khu vực')),
+                    Expanded(flex: 5, child: SectionLabel('Bề mặt / Mã')),
+                    Expanded(flex: 3, child: SectionLabel('Tòa nhà')),
                     Expanded(flex: 2, child: SectionLabel('Số lượng')),
                     Expanded(flex: 3, child: SectionLabel('Tình trạng')),
                     Expanded(flex: 2, child: SectionLabel('Kiểm kê gần nhất')),
@@ -428,7 +425,7 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
     ];
 
     return MobilePage(
-      title: 'Tài sản & thiết bị',
+      title: 'Phòng & bề mặt',
       trailing: IconButton.filled(
         onPressed: _addAsset,
         tooltip: 'Thêm tài sản',
@@ -464,7 +461,7 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
           ],
         ),
         const Gap(20),
-        SectionLabel('${assets.length} tài sản  ·  tất cả khu vực'),
+        SectionLabel('${assets.length} mục  ·  tất cả tòa nhà'),
         const Gap(10),
         if (all.isEmpty)
           FlCard(padding: EdgeInsets.zero, child: _emptyCatalog())

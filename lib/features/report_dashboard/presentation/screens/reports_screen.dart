@@ -7,6 +7,7 @@ import 'package:field_inventory_edge_ai/features/auth/presentation/auth_provider
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/repair_cost_card.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/audit_actions.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
@@ -56,7 +57,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Expanded(
             flex: 4,
             child: _Labeled(
-              label: 'Khu vực',
+              label: 'Tòa nhà',
               child: DropdownButtonFormField<String?>(
                 initialValue: _area,
                 isExpanded: true,
@@ -64,7 +65,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 items: [
                   const DropdownMenuItem(
                     value: null,
-                    child: Text('Tất cả khu vực'),
+                    child: Text('Tất cả tòa nhà'),
                   ),
                   for (final a in stats.areas)
                     DropdownMenuItem(value: a.name, child: Text(a.name)),
@@ -160,7 +161,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: _ReportPaper(
               areas: areas,
               period: period,
-              scope: _area ?? 'Toàn bộ nhà máy',
+              scope: _area ?? 'Toàn trường',
             ),
           ),
         ],
@@ -180,6 +181,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
       children: [
         filterCard,
+        const Gap(24),
+        RepairCostCard(
+          summary: ref.watch(reportRepairCostProvider),
+          subtitle: 'Các bề mặt đánh giá trong $period',
+          maxRooms: 8,
+        ),
         const Gap(24),
         FlSplitRow(main: listCard, side: previewCard, flex: 4),
       ],
@@ -239,6 +246,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
             ],
           ),
+        ),
+        const Gap(14),
+        RepairCostCard(
+          summary: ref.watch(reportRepairCostProvider),
+          subtitle:
+              'Các bề mặt đánh giá trong ${stats.periodLabel.toLowerCase()}',
+          compact: true,
         ),
         const Gap(22),
         const SectionLabel('Kết quả theo trạng thái'),

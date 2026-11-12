@@ -243,8 +243,8 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
           const Gap(12),
           KeyValueRow(label: 'Tài sản', value: _value(s?.displayName)),
           KeyValueRow(label: 'Mã tài sản', value: _value(s?.scanCode)),
-          KeyValueRow(label: 'Khu vực', value: _value(s?.area)),
-          KeyValueRow(label: 'Vị trí cụ thể', value: _value(s?.location)),
+          KeyValueRow(label: 'Tòa nhà / tầng', value: _value(s?.area)),
+          KeyValueRow(label: 'Phòng', value: _value(s?.location)),
           KeyValueRow(
             label: 'Số lượng thực tế',
             value: _value(s == null ? null : '${s.quantity} thiết bị'),

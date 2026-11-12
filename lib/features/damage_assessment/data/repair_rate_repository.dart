@@ -33,6 +33,42 @@ class SupabaseRepairRateRemoteSource implements RepairRateRemoteSource {
   }
 }
 
+/// Ghi bảng đơn giá trên máy chủ (chỉ admin; RLS chặn tài khoản khác).
+abstract class RepairRateWriter {
+  /// Thêm hoặc cập nhật dòng theo tổ hợp (chất liệu, loại, mức độ).
+  Future<void> upsert(RepairRate rate);
+
+  Future<void> delete(RepairRate rate);
+}
+
+class SupabaseRepairRateWriter implements RepairRateWriter {
+  const SupabaseRepairRateWriter(this._client);
+
+  final SupabaseClient Function() _client;
+
+  @override
+  Future<void> upsert(RepairRate rate) async {
+    await _client().from('repair_cost_rates').upsert({
+      ...rate.toJson(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'material,damage_type,severity');
+  }
+
+  @override
+  Future<void> delete(RepairRate rate) async {
+    var query = _client()
+        .from('repair_cost_rates')
+        .delete()
+        .eq('damage_type', rate.damageType.code)
+        .eq('severity', rate.severity.code);
+    final material = rate.material;
+    query = material == null
+        ? query.isFilter('material', null)
+        : query.eq('material', material.code);
+    await query;
+  }
+}
+
 /// Nơi lưu bản đơn giá gần nhất trên máy, để tính tiền khi ngoại tuyến.
 abstract class RepairRateCacheStore {
   Future<Map<String, dynamic>?> read();
@@ -147,6 +183,10 @@ class RepairRateRepository {
 final repairRateRemoteSourceProvider = Provider<RepairRateRemoteSource>(
   (ref) =>
       SupabaseRepairRateRemoteSource(() => ref.read(supabaseClientProvider)),
+);
+
+final repairRateWriterProvider = Provider<RepairRateWriter>(
+  (ref) => SupabaseRepairRateWriter(() => ref.read(supabaseClientProvider)),
 );
 
 final repairRateCacheStoreProvider = Provider<RepairRateCacheStore>(

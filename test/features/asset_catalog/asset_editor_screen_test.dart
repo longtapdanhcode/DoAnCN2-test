@@ -104,7 +104,7 @@ void main() {
 
     await tester.enterText(_field('Mã tài sản *'), 'ts-new-0001');
     await tester.enterText(_field('Tên tài sản *'), 'Máy nén khí Atlas');
-    await tester.enterText(_field('Khu vực'), 'Kho trung tâm');
+    await tester.enterText(_field('Tòa nhà / tầng'), 'Kho trung tâm');
     await tester.enterText(_field('Số lượng *'), '3');
     await tester.ensureVisible(find.text('Hư hỏng'));
     await tester.tap(find.text('Hư hỏng'));

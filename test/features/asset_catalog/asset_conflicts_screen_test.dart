@@ -81,7 +81,7 @@ void main() {
 
     expect(find.text('1 tài sản khác phiên bản'), findsOneWidget);
     expect(find.text('Số lượng'), findsOneWidget);
-    expect(find.text('Khu vực'), findsOneWidget);
+    expect(find.text('Tòa nhà / tầng'), findsOneWidget);
     expect(find.text('Tên tài sản'), findsNothing); // hai bên giống nhau
 
     await tester.tap(find.text('7'));

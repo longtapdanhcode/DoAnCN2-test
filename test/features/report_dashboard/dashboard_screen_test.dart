@@ -193,7 +193,7 @@ void main() {
         find.text('1 phiếu chờ đồng bộ • lưu trên thiết bị'),
         findsOneWidget,
       );
-      expect(find.text('Quét thiết bị'), findsOneWidget);
+      expect(find.text('Quét bề mặt'), findsOneWidget);
     });
 
     testWidgets('Desktop dashboard lists recent audit records', (tester) async {

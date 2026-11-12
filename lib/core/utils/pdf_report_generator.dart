@@ -7,6 +7,9 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../../features/asset_catalog/data/models/asset_model.dart';
 import '../../features/asset_catalog/domain/entities/asset_status.dart';
+import '../../features/damage_assessment/domain/entities/damage_enums.dart';
+import '../../features/damage_assessment/domain/repair_cost_summary.dart';
+import '../../features/damage_assessment/presentation/damage_format.dart';
 import '../../features/offline_audit/data/models/audit_record_model.dart';
 import '../../features/offline_audit/domain/entities/audit_condition.dart';
 
@@ -178,6 +181,7 @@ class PdfReportGenerator {
         .where((r) => r.condition == 'check' || r.condition == 'damaged')
         .length;
     final pending = records.where((r) => !r.isSynced).length;
+    final cost = RepairCostSummary.fromRecords(records);
 
     const accent = PdfColors.teal800;
 
@@ -198,12 +202,17 @@ class PdfReportGenerator {
                   style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
                 ),
                 pw.SizedBox(height: 3),
-                pw.Text(
-                  value,
-                  style: pw.TextStyle(
-                    font: boldFont,
-                    fontSize: 16,
-                    color: color,
+                // Số tiền dài thu nhỏ cho vừa ô thay vì xuống dòng.
+                pw.FittedBox(
+                  fit: pw.BoxFit.scaleDown,
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text(
+                    value,
+                    style: pw.TextStyle(
+                      font: boldFont,
+                      fontSize: 16,
+                      color: color,
+                    ),
                   ),
                 ),
               ],
@@ -315,10 +324,34 @@ class PdfReportGenerator {
                       children: [
                         field('Tên tài sản', r.assetName ?? 'Chưa nhập'),
                         field(
-                          'Loại thiết bị (nhận diện AI)',
+                          'Hạng mục (nhận diện AI)',
                           r.aiDetectedLabel ?? 'Không có',
                         ),
                         field('Khu vực • Vị trí', place.isEmpty ? '-' : place),
+                        if (r.surfaceAssessment case final a?) ...[
+                          field(
+                            'Bề mặt',
+                            '${a.material.label} • ${formatQuantity(a.surfaceAreaM2, MeasureUnit.squareMeter)}'
+                                ' • điểm ${a.conditionScore.round()}/100',
+                          ),
+                          field(
+                            'Hư hỏng (ước tính)',
+                            a.items.isEmpty
+                                ? 'Không ghi nhận'
+                                : [
+                                    for (final i in a.items)
+                                      '${i.type.label}: ${formatQuantity(i.measuredQuantity, i.type.unit)}'
+                                          ' • ${i.severity.label}'
+                                          '${i.fullSurface ? ' (xử lý cả bề mặt)' : ''}'
+                                          ' • ${i.hasPrice ? formatVnd(i.estimatedCost!) : 'chưa có đơn giá'}',
+                                  ].join('\n'),
+                          ),
+                          field(
+                            'Chi phí sửa chữa ước tính',
+                            formatVnd(a.totalCost),
+                            color: accent,
+                          ),
+                        ],
                         pw.Row(
                           children: [
                             pw.Expanded(
@@ -601,7 +634,17 @@ class PdfReportGenerator {
                 vertical: 5,
               ),
             ),
-            sectionTitle('2. Chi tiết từng phiếu và chữ ký xác nhận'),
+            if (!cost.isEmpty)
+              ..._costSection(
+                cost,
+                sectionTitle: sectionTitle,
+                stat: stat,
+                boldFont: boldFont,
+                accent: accent,
+              ),
+            sectionTitle(
+              '${cost.isEmpty ? 2 : 3}. Chi tiết từng phiếu và chữ ký xác nhận',
+            ),
             // Inseparable: thiếu chỗ cuối trang thì cả phiếu sang trang sau,
             // không bị nén thành khung rỗng.
             for (final r in records) pw.Inseparable(child: detailCard(r)),
@@ -631,6 +674,130 @@ class PdfReportGenerator {
     );
 
     return pdf.save();
+  }
+
+  /// Mục "Đánh giá hư hỏng và chi phí sửa chữa": chỉ số tổng, theo tòa nhà và
+  /// danh sách bề mặt xếp theo mức ưu tiên sửa.
+  static List<pw.Widget> _costSection(
+    RepairCostSummary cost, {
+    required pw.Widget Function(String) sectionTitle,
+    required pw.Widget Function(String, String, {PdfColor color}) stat,
+    required pw.Font boldFont,
+    required PdfColor accent,
+  }) {
+    final score = cost.facilityScore;
+    final severe = cost.countWorst(DamageSeverity.severe);
+    const maxRows = 30;
+    pw.Widget table(
+      List<String> headers,
+      List<List<String>> rows,
+      Map<int, pw.TableColumnWidth> widths, {
+      Set<int> right = const {},
+    }) => pw.TableHelper.fromTextArray(
+      headers: headers,
+      data: rows,
+      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+      headerStyle: pw.TextStyle(
+        font: boldFont,
+        fontSize: 8.5,
+        color: PdfColors.white,
+      ),
+      headerDecoration: pw.BoxDecoration(color: accent),
+      cellStyle: const pw.TextStyle(fontSize: 8.5),
+      cellAlignments: {for (final i in right) i: pw.Alignment.centerRight},
+      columnWidths: widths,
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+    );
+
+    final notes = [
+      'Chi phí là ước tính từ số đo trên ảnh (thẻ QR làm thước) và bảng đơn giá; '
+          'cần khảo sát lại trước khi lập dự toán.',
+      if (cost.usesSampleRates) 'Có phiếu tính theo bảng giá MINH HOẠ, chưa phải giá thật của nhà trường.',
+      if (cost.unpricedItems > 0)
+        '${cost.unpricedItems} hạng mục chưa có đơn giá, chưa tính vào tổng.',
+      if (cost.count > maxRows)
+        'Danh sách ưu tiên chỉ in $maxRows/${cost.count} bề mặt đầu tiên.',
+    ];
+
+    return [
+      sectionTitle('2. Đánh giá hư hỏng và chi phí sửa chữa (ước tính)'),
+      pw.Row(
+        children: [
+          stat('Chi phí ước tính', formatVnd(cost.totalCost)),
+          pw.SizedBox(width: 8),
+          stat(
+            'Điểm cơ sở vật chất',
+            score == null ? '-' : '${score.round()}/100',
+            color: score != null && score < 60 ? PdfColors.red800 : accent,
+          ),
+          pw.SizedBox(width: 8),
+          stat('Bề mặt đã đánh giá', '${cost.count}'),
+          pw.SizedBox(width: 8),
+          stat(
+            'Bề mặt hư hỏng nặng',
+            '$severe',
+            color: severe > 0 ? PdfColors.red800 : accent,
+          ),
+        ],
+      ),
+      pw.SizedBox(height: 10),
+      table(
+        const ['Tòa nhà / khu vực', 'Số bề mặt', 'Điểm TB', 'Chi phí ước tính'],
+        [
+          for (final b in cost.byBuilding)
+            [
+              b.name,
+              '${b.surfaces}',
+              '${b.averageScore.round()}',
+              formatVnd(b.cost),
+            ],
+        ],
+        {
+          0: const pw.FlexColumnWidth(3),
+          1: const pw.FlexColumnWidth(1),
+          2: const pw.FlexColumnWidth(1),
+          3: const pw.FlexColumnWidth(1.6),
+        },
+        right: {1, 2, 3},
+      ),
+      pw.SizedBox(height: 10),
+      pw.Text(
+        'Danh sách bề mặt theo mức ưu tiên sửa chữa',
+        style: pw.TextStyle(font: boldFont, fontSize: 10),
+      ),
+      pw.SizedBox(height: 6),
+      table(
+        const ['STT', 'Mã', 'Bề mặt', 'Tòa • Phòng', 'Mức', 'Điểm', 'Chi phí'],
+        [
+          for (final (i, s) in cost.surfaces.take(maxRows).indexed)
+            [
+              '${i + 1}',
+              s.code.isEmpty ? '-' : s.code,
+              s.name,
+              '${s.building} • ${s.room}',
+              s.worst?.label ?? 'Tốt',
+              '${s.score.round()}',
+              formatVnd(s.cost),
+            ],
+        ],
+        {
+          0: const pw.FixedColumnWidth(28),
+          1: const pw.FlexColumnWidth(1.3),
+          2: const pw.FlexColumnWidth(1.6),
+          3: const pw.FlexColumnWidth(2),
+          4: const pw.FlexColumnWidth(0.8),
+          5: const pw.FlexColumnWidth(0.7),
+          6: const pw.FlexColumnWidth(1.4),
+        },
+        right: {5, 6},
+      ),
+      pw.SizedBox(height: 6),
+      for (final n in notes)
+        pw.Text(
+          '• $n',
+          style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
+    ];
   }
 
   /// Tên tài sản, kèm nhãn AI khi khác tên do kiểm kê viên nhập.

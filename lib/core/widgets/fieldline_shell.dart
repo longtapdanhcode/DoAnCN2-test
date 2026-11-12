@@ -36,7 +36,7 @@ class _NavItem {
 
 const _fieldItems = [
   _NavItem('Tổng quan', Icons.grid_view_outlined, '/'),
-  _NavItem('Tài sản & thiết bị', Icons.inventory_2_outlined, '/assets'),
+  _NavItem('Phòng & bề mặt', Icons.inventory_2_outlined, '/assets'),
   _NavItem('Quét mã & AI', Icons.qr_code_scanner_rounded, '/scanner'),
   _NavItem(
     'Phiếu kiểm kê',
@@ -50,6 +50,7 @@ const _fieldItems = [
 
 const _workspaceItems = [
   _NavItem('Địa điểm', Icons.location_on_outlined, '/locations'),
+  _NavItem('Đơn giá sửa chữa', Icons.payments_outlined, '/repair-rates'),
   _NavItem('Cài đặt', Icons.settings_outlined, '/settings'),
 ];
 
@@ -66,13 +67,14 @@ const _mobileItems = [
 ];
 
 const _pageTitles = {
-  '/assets': 'Tài sản & thiết bị',
+  '/assets': 'Phòng & bề mặt',
   '/scanner': 'Quét mã & nhận diện AI',
   '/audit-form': 'Lập phiếu kiểm kê',
   '/signature': 'Ký xác nhận kiểm kê',
   '/reports': 'Báo cáo kiểm kê',
   '/sync': 'Đồng bộ dữ liệu',
   '/locations': 'Địa điểm',
+  '/repair-rates': 'Bảng đơn giá sửa chữa',
   '/settings': 'Cài đặt',
 };
 

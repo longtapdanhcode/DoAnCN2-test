@@ -54,6 +54,7 @@ Khi thêm màn hình hoặc provider dùng cho cả hai nền tảng, hãy đưa
 - `AiConfig.damageTypeByClass` ánh xạ lớp model sang `DamageType`; đổi khi thay model phân vùng 4 lớp.
 - Bảng đơn giá `repair_cost_rates` (chỉ admin sửa) được `RepairRateRepository` tải và lưu offline; không có thì dùng `sampleRepairRates` (giá minh hoạ, phải trùng `supabase/seed/repair_cost_rates_sample.sql`, có test kiểm tra).
 - Phiếu lưu `SurfaceAssessment` dạng JSON kèm đơn giá lúc kiểm kê (`AuditRecordModel.applyAssessment`), cùng `estimatedCost`, `damageIndex`.
+- `RepairCostSummary` gom chi phí theo tòa nhà (`area`) / phòng (`location`), lấy phiếu mới nhất của mỗi mã; dùng chung cho Tổng quan, Báo cáo và PDF. Màn `/repair-rates` cho admin sửa đơn giá (`RepairRateWriter`).
 
 ### Quản lý state
 Riverpod 3, dùng lẫn provider sinh tự động (`@riverpod` + `*.g.dart`) và `Provider`/`AsyncNotifier` viết tay. Test truyền fake qua override của `ProviderScope`/`ProviderContainer` (ví dụ `isarAuditRepositoryProvider`, `syncRepositoryProvider`, `authRepositoryProvider`); các fake dùng chung nằm trong `test/helpers/`.

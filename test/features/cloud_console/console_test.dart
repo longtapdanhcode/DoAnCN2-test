@@ -114,7 +114,7 @@ void main() {
     ) async {
       await pump(tester, const Size(1440, 1000));
 
-      expect(find.text('Tài sản & thiết bị'), findsWidgets);
+      expect(find.text('Phòng & bề mặt'), findsWidgets);
       expect(find.text('Báo cáo'), findsOneWidget);
       expect(find.text('Quét mã & AI'), findsNothing);
       expect(find.text('Phiếu kiểm kê'), findsNothing);
