@@ -25,16 +25,29 @@ enum MeasureUnit {
 /// `docs/ai-training/HUONG_DAN_TRAIN_MODEL_BE_MAT.md`), nên [index] chính là
 /// chỉ số lớp của model.
 enum DamageType {
-  crack('vet_nut', 'Vết nứt', MeasureUnit.meter),
-  waterMold('tham_moc', 'Thấm nước / ẩm mốc', MeasureUnit.squareMeter),
-  peelingPaint('bong_son', 'Bong tróc sơn', MeasureUnit.squareMeter),
-  rust('gi_set', 'Gỉ sét', MeasureUnit.squareMeter);
+  crack('vet_nut', 'Vết nứt', MeasureUnit.meter, 'Vết nứt'),
+  waterMold(
+    'tham_moc',
+    'Thấm nước / ẩm mốc',
+    MeasureUnit.squareMeter,
+    'Thấm, mốc',
+  ),
+  peelingPaint(
+    'bong_son',
+    'Bong tróc sơn',
+    MeasureUnit.squareMeter,
+    'Bong sơn',
+  ),
+  rust('gi_set', 'Gỉ sét', MeasureUnit.squareMeter, 'Gỉ sét');
 
-  const DamageType(this.code, this.label, this.unit);
+  const DamageType(this.code, this.label, this.unit, this.shortLabel);
 
   /// Tên lớp của model, cũng là giá trị lưu trữ.
   final String code;
   final String label;
+
+  /// Tên ngắn cho ô chọn hẹp trên điện thoại.
+  final String shortLabel;
 
   /// Vết nứt đo theo chiều dài, các loại còn lại đo theo diện tích.
   final MeasureUnit unit;

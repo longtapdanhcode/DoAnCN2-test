@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import 'package:field_inventory_edge_ai/core/ai_pipeline/ai_config.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_measurer.dart';
 
 import '../../data/repositories/scanner_repository_impl.dart';
 import '../../data/repositories/vision_ai_providers.dart';
@@ -95,7 +99,15 @@ class ScannerUiState {
   /// Chẩn đoán Edge AI (mô hình, số khung, kết quả cao nhất).
   final AiDiagnostics ai;
 
+  /// Kết quả đo hư hỏng trên khung quét thành công (thẻ QR làm thước đo).
+  final FrameMeasurement? measurement;
+
+  /// Đang chạy AI trên khung quét thành công để đo.
+  final bool isMeasuring;
+
   const ScannerUiState({
+    this.measurement,
+    this.isMeasuring = false,
     this.ai = const AiDiagnostics(),
     this.status = ScannerStatus.initial,
     this.isTorchOn = false,
@@ -114,8 +126,13 @@ class ScannerUiState {
     bool clearSuccessFrame = false,
     String? errorMessage,
     AiDiagnostics? ai,
+    FrameMeasurement? measurement,
+    bool clearMeasurement = false,
+    bool? isMeasuring,
   }) {
     return ScannerUiState(
+      measurement: clearMeasurement ? null : (measurement ?? this.measurement),
+      isMeasuring: isMeasuring ?? this.isMeasuring,
       ai: ai ?? this.ai,
       status: status ?? this.status,
       isTorchOn: isTorchOn ?? this.isTorchOn,
@@ -299,8 +316,34 @@ class ScannerController extends _$ScannerController {
     }
   }
 
-  /// Phân tích frame ảnh camera on-device với cơ chế bảo vệ CPU
-  Future<void> processCameraFrame(MobileScannerCapture capture) async {
+  /// Lượt AI đang chạy (nếu có), để bước đo chờ lượt đó xong.
+  Future<VisionAnalysis>? _inFlight;
+
+  static const _measurer = DamageMeasurer(
+    cropFraction: AiConfig.cropFraction,
+    damageTypeByClass: AiConfig.damageTypeByClass,
+  );
+
+  /// Chạy AI trên một khung (ảnh cắt sẵn từ iOS nếu có).
+  Future<VisionAnalysis> _analyze(MobileScannerCapture capture) {
+    // iOS (bản vá mobile_scanner) gửi kèm ảnh đã cắt theo khung quét.
+    final raw = capture.raw;
+    final squareRgb = raw is Map ? raw['aiInput'] : null;
+    return _visionAiRepo.analyze(
+      capture.image!,
+      squareRgb: squareRgb is Uint8List ? squareRgb : null,
+      frameWidth: capture.size.width.round(),
+      frameHeight: capture.size.height.round(),
+    );
+  }
+
+  /// Phân tích frame ảnh camera on-device với cơ chế bảo vệ CPU.
+  ///
+  /// Trả về kết quả của chính khung này, hoặc `null` khi khung không có ảnh,
+  /// bị bỏ vì AI còn bận, hoặc lỗi.
+  Future<VisionAnalysis?> processCameraFrame(
+    MobileScannerCapture capture,
+  ) async {
     final imageBytes = capture.image;
     if (imageBytes == null || imageBytes.isEmpty) {
       state = state.copyWith(
@@ -309,7 +352,7 @@ class ScannerController extends _$ScannerController {
           framesWithoutImage: state.ai.framesWithoutImage + 1,
         ),
       );
-      return;
+      return null;
     }
     // Cơ chế bảo vệ CPU: Bỏ qua frame (drop frame) nếu AI đang bận inference
     if (_isAnalyzing) {
@@ -319,24 +362,18 @@ class ScannerController extends _$ScannerController {
           framesSkipped: state.ai.framesSkipped + 1,
         ),
       );
-      return;
+      return null;
     }
     state = state.copyWith(
       ai: state.ai.copyWith(framesReceived: state.ai.framesReceived + 1),
     );
     _isAnalyzing = true;
     try {
-      // iOS (bản vá mobile_scanner) gửi kèm ảnh đã cắt theo khung quét.
-      final raw = capture.raw;
-      final squareRgb = raw is Map ? raw['aiInput'] : null;
-      final analysis = await _visionAiRepo.analyze(
-        imageBytes,
-        squareRgb: squareRgb is Uint8List ? squareRgb : null,
-        frameWidth: capture.size.width.round(),
-        frameHeight: capture.size.height.round(),
-      );
+      final run = _analyze(capture);
+      _inFlight = run;
+      final analysis = await run;
       // Đã rời màn Quét trong lúc AI xử lý khung này.
-      if (!ref.mounted) return;
+      if (!ref.mounted) return analysis;
       final objects = analysis.labels;
       final ai = state.ai.copyWith(
         framesAnalyzed: state.ai.framesAnalyzed + 1,
@@ -352,17 +389,20 @@ class ScannerController extends _$ScannerController {
       } else {
         state = state.copyWith(ai: ai);
       }
+      return analysis;
     } catch (e) {
       debugPrint('[ScannerController] Error during AI inference: $e');
+      return null;
     } finally {
       _isAnalyzing = false;
+      _inFlight = null;
     }
   }
 
   /// Xử lý sự kiện khi MobileScanner phát hiện mã
   void onBarcodeScanned(BarcodeCapture capture) {
     // Kích hoạt phân tích AI trên frame ảnh camera song song
-    processCameraFrame(capture);
+    final analysis = processCameraFrame(capture);
 
     if (state.status != ScannerStatus.scanning) return;
 
@@ -374,10 +414,54 @@ class ScannerController extends _$ScannerController {
           status: ScannerStatus.success,
           latestResult: result,
           successFrame: capture.image,
+          clearMeasurement: true,
         );
+        unawaited(_measure(capture, barcode, analysis));
         break;
       }
     }
+  }
+
+  /// Đo hư hỏng trên khung vừa quét được mã: thẻ QR là thước đo, AI cho
+  /// vùng hư hỏng.
+  Future<void> _measure(
+    BarcodeCapture capture,
+    Barcode barcode,
+    Future<VisionAnalysis?> pending,
+  ) async {
+    if (capture.image == null || capture.image!.isEmpty) return;
+    state = state.copyWith(isMeasuring: true);
+    VisionAnalysis? analysis;
+    try {
+      analysis = await pending;
+      if (analysis == null) {
+        // Khung bị bỏ vì AI đang bận khung trước: chờ lượt đó rồi phân tích
+        // lại chính khung có mã (camera đã dừng nên không còn khung mới).
+        final busy = _inFlight;
+        if (busy != null) await busy.then((_) {}, onError: (_) {});
+        if (!ref.mounted) return;
+        _isAnalyzing = true;
+        try {
+          analysis = await _analyze(capture);
+        } finally {
+          _isAnalyzing = false;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ScannerController] Không đo được khung quét: $e');
+    }
+    if (!ref.mounted) return;
+    if (analysis == null) {
+      state = state.copyWith(isMeasuring: false);
+      return;
+    }
+    final size = capture.size;
+    final measurement = _measurer.measure(
+      detections: analysis.detections,
+      frameShortSidePx: math.min(size.width, size.height),
+      scale: MarkerScale.fromCorners(barcode.corners, AiConfig.markerSizeCm),
+    );
+    state = state.copyWith(isMeasuring: false, measurement: measurement);
   }
 
   /// Tiếp tục quét mã tiếp theo
@@ -386,6 +470,8 @@ class ScannerController extends _$ScannerController {
       latestResult: null,
       clearSuccessFrame: true,
       errorMessage: null,
+      clearMeasurement: true,
+      isMeasuring: false,
     );
     await startCamera();
   }

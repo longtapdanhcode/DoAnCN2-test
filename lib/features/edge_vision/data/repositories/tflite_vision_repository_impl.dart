@@ -11,6 +11,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import '../../../../core/ai_pipeline/ai_config.dart';
 import '../../domain/entities/vision_analysis.dart';
 import '../../domain/repositories/vision_ai_repository.dart';
+import '../../domain/yolo_box_decoder.dart';
 
 part 'tflite_vision_repository_impl.g.dart';
 
@@ -188,6 +189,14 @@ class TfliteVisionRepositoryImpl implements VisionAiRepository {
       final top = topCandidate(rows, _labels.length);
       return VisionAnalysis(
         labels: decodeDetections(rows, _labels),
+        detections: decodeYoloBoxes(
+          rows,
+          _labels,
+          thresholdFor: thresholdFor,
+          inputSize: AiConfig.inputSize,
+          iouThreshold: AiConfig.nmsIouThreshold,
+          maxDetections: AiConfig.maxDetections,
+        ),
         topLabel: top == null ? null : _labels[top.$1],
         topScore: top?.$2 ?? 0,
         topThreshold: top == null ? 0 : thresholdFor(top.$1),

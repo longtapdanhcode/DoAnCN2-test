@@ -1,3 +1,5 @@
+import 'detection.dart';
+
 /// Trạng thái mô hình AI trên máy.
 enum VisionModelStatus {
   /// Chưa nạp (màn Quét chưa mở lần nào).
@@ -21,6 +23,7 @@ enum VisionModelStatus {
 class VisionAnalysis {
   const VisionAnalysis({
     this.labels = const [],
+    this.detections = const [],
     this.topLabel,
     this.topScore = 0,
     this.topThreshold = 0,
@@ -34,6 +37,9 @@ class VisionAnalysis {
 
   /// Nhãn đạt ngưỡng, dạng "Ghế (93.4%)", điểm cao xếp trước.
   final List<String> labels;
+
+  /// Các vùng phát hiện (đã lọc trùng), toạ độ theo ô ảnh vào AI.
+  final List<Detection> detections;
 
   /// Nhãn có điểm cao nhất, kể cả khi dưới ngưỡng.
   final String? topLabel;

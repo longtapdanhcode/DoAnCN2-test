@@ -49,6 +49,12 @@ Khi thêm màn hình hoặc provider dùng cho cả hai nền tảng, hãy đưa
 - iOS chạy bằng GPU delegate Metal, lỗi thì tự chuyển sang CPU.
 - `mobile_scanner` là **bản vá cục bộ** trong `third_party/mobile_scanner` (khai báo qua `dependency_overrides` trong pubspec). Bản vá iOS/macOS vẫn gửi frame khi không có mã (~2 frame/giây) và gửi kèm khoá `aiInput` chứa ảnh RGB 640×640 đã cắt sẵn. Android **chưa vá** (AI chỉ chạy khi camera thấy mã). Đọc `third_party/mobile_scanner/PATCH_NOTES.md` trước khi sửa.
 
+### Đánh giá hư hỏng bề mặt và chi phí (`features/damage_assessment`)
+- Luồng: quét QR dán trên bề mặt (thẻ 10 cm, `AiConfig.markerSizeCm`) → `ScannerController._measure` chạy AI trên chính khung đó → `DamageMeasurer` quy khung phát hiện ra m²/mét theo cạnh thẻ QR → phiếu kiểm kê (`SurfaceAssessmentSection`) cho sửa số, nhập diện tích bề mặt → `DamageCalculator` tính chỉ số 0–100, mức độ, chi phí theo bảng đơn giá.
+- `AiConfig.damageTypeByClass` ánh xạ lớp model sang `DamageType`; đổi khi thay model phân vùng 4 lớp.
+- Bảng đơn giá `repair_cost_rates` (chỉ admin sửa) được `RepairRateRepository` tải và lưu offline; không có thì dùng `sampleRepairRates` (giá minh hoạ, phải trùng `supabase/seed/repair_cost_rates_sample.sql`, có test kiểm tra).
+- Phiếu lưu `SurfaceAssessment` dạng JSON kèm đơn giá lúc kiểm kê (`AuditRecordModel.applyAssessment`), cùng `estimatedCost`, `damageIndex`.
+
 ### Quản lý state
 Riverpod 3, dùng lẫn provider sinh tự động (`@riverpod` + `*.g.dart`) và `Provider`/`AsyncNotifier` viết tay. Test truyền fake qua override của `ProviderScope`/`ProviderContainer` (ví dụ `isarAuditRepositoryProvider`, `syncRepositoryProvider`, `authRepositoryProvider`); các fake dùng chung nằm trong `test/helpers/`.
 

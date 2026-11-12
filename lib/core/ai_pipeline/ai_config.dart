@@ -1,3 +1,5 @@
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/damage_enums.dart';
+
 class AiConfig {
   const AiConfig._();
 
@@ -28,4 +30,24 @@ class AiConfig {
 
   /// Chỉ số các lớp hư hỏng trong danh sách nhãn.
   static const Set<int> defectClassIndexes = {0, 1, 2, 5};
+
+  /// Lớp của model ứng với loại hư hỏng bề mặt nào. Model hiện tại (9 lớp)
+  /// có 3 loại; "Khuyết tật kim loại" gộp vào gỉ sét. Khi thay model phân
+  /// vùng 4 lớp mới, đổi thành `{0: crack, 1: waterMold, 2: peelingPaint,
+  /// 3: rust}` (xem docs/ai-training/HUONG_DAN_TRAIN_MODEL_BE_MAT.md).
+  static const Map<int, DamageType> damageTypeByClass = {
+    0: DamageType.crack,
+    1: DamageType.rust,
+    2: DamageType.waterMold,
+    5: DamageType.rust,
+  };
+
+  /// Ngưỡng IoU khi lọc các khung trùng nhau của cùng một lớp.
+  static const double nmsIouThreshold = 0.45;
+
+  /// Số khung tối đa giữ lại cho một khung hình.
+  static const int maxDetections = 30;
+
+  /// Cạnh thật (cm) của thẻ QR dán trên bề mặt, dùng để quy đổi pixel ra cm.
+  static const double markerSizeCm = 10;
 }
