@@ -1,32 +1,72 @@
-# Fieldline — Field Inventory & Edge AI
+# Fieldline — Đánh giá cơ sở vật chất trường học bằng Edge AI
 
-Ứng dụng **kiểm kê tài sản hiện trường** viết bằng Flutter. App cho phép quét mã QR/Barcode, nhận diện thiết bị và hư hỏng **ngay trên máy** bằng mô hình YOLO (TFLite), lập phiếu kiểm kê **ngoại tuyến** (Isar), ký xác nhận, chụp ảnh minh chứng, tự đồng bộ lên **Supabase** khi có mạng và xuất **báo cáo PDF A4**. Bản **web** đóng vai trò trung tâm quản lý dữ liệu.
+Ứng dụng Flutter giúp **đánh giá hư hỏng cơ sở vật chất trong trường học** và **ước tính chi phí sửa chữa**:
 
-> Đồ án cuối kỳ môn **Phát triển ứng dụng đa nền tảng**.
+- Kiểm tra viên quét **thẻ QR 10×10 cm** dán trên bề mặt (tường, trần, sàn, cửa sắt, lan can…).
+- AI chạy **ngay trên máy** (YOLO, TFLite) tìm vùng hư hỏng. Thẻ QR đóng vai thước đo để quy ra **m²** hoặc **mét dài**.
+- App tính **chỉ số hư hại**, **mức độ** và **chi phí sửa chữa** theo bảng đơn giá do nhà trường quản lý.
+- Phiếu được ký xác nhận, lưu **ngoại tuyến** (Isar), tự đồng bộ lên **Supabase** khi có mạng.
+- Kết quả tổng hợp thành **báo cáo PDF A4**: chi phí theo tòa nhà, danh sách phòng cần ưu tiên sửa.
+
+Bản **web** là trung tâm quản lý: xem số liệu, báo cáo và quản lý bảng đơn giá.
+
+> Đồ án cuối kỳ môn **Phát triển ứng dụng đa nền tảng**. Phạm vi ban đầu là kiểm kê tài sản hiện trường, sau đó được thu hẹp về đánh giá cơ sở vật chất trường học để giảm chi phí huấn luyện AI.
 
 ---
+
+## Luồng sử dụng
+
+```
+Quét thẻ QR trên bề mặt
+ → AI tìm vùng hư hỏng trong khung xanh, thẻ QR làm thước đo
+ → Phiếu: chọn chất liệu, nhập/kiểm tra diện tích bề mặt, sửa số đo nếu cần
+ → App tính chỉ số, mức độ, chi phí theo bảng đơn giá
+ → Ký xác nhận → lưu trên máy → tự đồng bộ
+ → Tổng quan / Báo cáo / PDF: chi phí theo tòa nhà, phòng, mức ưu tiên
+```
 
 ## Tính năng chính
 
 ### App hiện trường (iOS / Android / macOS)
-- **Đăng nhập / đăng ký** bằng Supabase Auth. Phiên đăng nhập được giữ trên máy, nên sau lần đầu vẫn vào app được khi ngoại tuyến.
-- **Quét mã** QR / EAN / UPC / Code128/39/93 / DataMatrix / PDF417. Hỗ trợ đèn flash, đổi camera, **nhập mã thủ công** khi camera lỗi.
-- **Edge AI**: YOLO chạy on-device, nhận diện **9 lớp**:
-  - Thiết bị: Tủ điện, Aptomat, Ghế, Bàn, Máy chiếu
-  - Hư hỏng: Vết nứt, Gỉ sét, Thấm nước, Khuyết tật kim loại
+- **Đăng nhập / đăng ký** bằng Supabase Auth. Phiên đăng nhập được giữ trên máy, nên sau lần đầu vẫn vào được app khi ngoại tuyến.
+- **Quét mã** QR / EAN / UPC / Code128/39/93 / DataMatrix / PDF417, có đèn flash, đổi camera, **nhập mã thủ công**.
+- **Đo hư hỏng bằng thẻ QR:**
+  - Ngay khi đọc được mã, app chạy AI trên chính khung đó.
+  - Kích thước thật được quy đổi từ cạnh thẻ QR trên ảnh (`AiConfig.markerSizeCm`, mặc định 10 cm).
+  - Khi thẻ quá nhỏ hoặc mờ, app vẫn liệt kê loại hư hỏng để người kiểm tra tự nhập số đo.
+- **Đánh giá bề mặt trên phiếu:**
+  - Chọn chất liệu, nhập diện tích bề mặt (tự điền nếu danh mục đã có), sửa, thêm hoặc xoá vùng hư hỏng.
+  - Xem ngay mức độ, chỉ số, cách xử lý và chi phí từng hạng mục.
+  - Tình trạng phiếu tự chuyển theo mức hư hỏng nặng nhất.
+- **Ảnh minh chứng**, **ký xác nhận** trên canvas (tên, chức vụ người ký).
+- **Bản nháp:** phiếu chưa ký không đồng bộ và không vào báo cáo.
+- **Offline-first và tự đồng bộ:** debounce 3 giây, retry lùi dần từ 30 giây đến tối đa 5 phút. Bảng đơn giá được lưu trên máy nên **tính được tiền cả khi ngoại tuyến**.
+- **Phòng & bề mặt:** danh mục theo tòa nhà / phòng, có chất liệu và diện tích bề mặt. Khi máy và cloud sửa cùng một mục, app hiện màn đối chiếu.
+- **Tổng quan & Báo cáo:**
+  - Chi phí sửa chữa ước tính, **điểm cơ sở vật chất** (0–100), số bề mặt theo mức Nặng / Vừa / Nhẹ, các phòng cần ưu tiên.
+  - Chọn kỳ báo cáo theo tháng, xem trước PDF.
 
-  Trên iOS, mô hình chạy bằng **GPU (Metal)**, mỗi lượt nhận diện mất khoảng 0,3 giây. AI chỉ đọc phần ảnh **trong khung xanh**, và vẫn nhận diện được khi khung hình không có QR. Màn quét có thẻ **chẩn đoán AI** hiện thời gian xử lý và phần cứng đang dùng (GPU/CPU).
-- **Phiếu kiểm kê**: tên tài sản, loại, khu vực, vị trí, tình trạng, số lượng, ghi chú, **ảnh minh chứng** (`image_picker`). Phiếu chưa ký được lưu thành **bản nháp**: bản nháp không đồng bộ, không vào báo cáo, có thể mở lại để ký hoặc xoá.
-- **Ký xác nhận** trên canvas (lưu tên và chức vụ người ký), xuất ảnh PNG.
-- **Offline-first**: mọi phiếu lưu vào Isar trước.
-- **Tự động đồng bộ** phiếu đã ký khi có mạng (debounce 3 giây, retry lùi dần từ 30 giây đến tối đa 5 phút). Có thể đồng bộ tay ở màn Đồng bộ.
-- **Danh mục tài sản**: thêm/sửa tài sản, lọc theo khu vực, xuất danh sách PDF. Khi máy và cloud sửa cùng một tài sản, app hiện **màn đối chiếu** để chọn giữ bản nào.
-- **Tổng quan & Báo cáo**: số liệu thật, chọn kỳ báo cáo theo tháng, xem trước PDF nhiều trang trước khi chia sẻ.
-- **Địa điểm & Cài đặt**: thống kê theo khu vực, cấu hình đồng bộ.
-
-### Bản web (trung tâm quản lý — Card 28)
+### Bản web (trung tâm quản lý)
 - Đọc/ghi trực tiếp trên Supabase, không dùng Isar.
+- **Bảng đơn giá sửa chữa** (`/repair-rates`): ai cũng xem được, **chỉ quản trị viên** được thêm, sửa, xoá.
 - Không có chức năng quét, lập phiếu, ký hay đồng bộ ngoại tuyến. Các route `/scanner`, `/audit-form`, `/signature`, `/sync` tự chuyển về trang chủ.
+
+## Cách tính chỉ số và chi phí
+
+| Bước | Quy tắc |
+|---|---|
+| Khối lượng | Thấm/mốc, bong sơn, gỉ sét đo theo **m²**; vết nứt đo theo **mét dài**. Với model hiện tại (khung chữ nhật): diện tích ≈ diện tích khung × π/4, chiều dài nứt ≈ đường chéo khung |
+| Chỉ số hư hại (0–100) | Loại theo m²: diện tích hư ÷ diện tích bề mặt × 100. Vết nứt: (mét nứt ÷ m² bề mặt) ÷ 2 m/m² × 100. Các vùng cùng loại được cộng trước khi tính |
+| Mức độ | Dưới 5: **Nhẹ**; 5–20: **Vừa**; từ 20: **Nặng** |
+| Xử lý toàn bộ | Loại theo m² có chỉ số từ 40: tính tiền theo **cả diện tích bề mặt** |
+| Chi phí | Khối lượng × đơn giá theo (chất liệu, loại hư hỏng, mức độ). Ưu tiên đơn giá riêng của chất liệu, không có thì dùng giá chung |
+| Điểm bề mặt | 100 − tổng chỉ số các loại (tối thiểu 0). Điểm cơ sở vật chất là trung bình các bề mặt |
+
+- Các ngưỡng nằm trong `AssessmentConfig` (`lib/features/damage_assessment/domain/damage_calculator.dart`) và **cần hiệu chỉnh** với số đo thực tế.
+- Phiếu lưu cả đơn giá tại thời điểm kiểm tra, nên báo cáo cũ không đổi khi bảng giá thay đổi.
+- Một bề mặt kiểm tra nhiều lần thì báo cáo chỉ lấy phiếu mới nhất.
+
+> ⚠️ Bảng giá trong `supabase/seed/repair_cost_rates_sample.sql` là **giá minh hoạ** (cờ `is_sample`), chưa phải giá thật của nhà trường. Quản trị viên cần sửa lại ở màn Bảng đơn giá. Chi phí trong app và báo cáo luôn là **ước tính**.
 
 ## Tech stack
 
@@ -36,7 +76,7 @@
 | State | `flutter_riverpod` + `riverpod_generator` |
 | Routing | `go_router` (auth redirect, `ShellRoute`) |
 | Camera / Scanner | `mobile_scanner` 7.4.2 (**bản vá cục bộ** trong `third_party/`), `permission_handler` |
-| Edge AI | `tflite_flutter` (GPU delegate Metal trên iOS) — YOLOv8s, input 640×640 |
+| Edge AI | `tflite_flutter` (GPU delegate Metal trên iOS), input 640×640 |
 | Local DB | `isar_plus` |
 | Backend | `supabase_flutter` (Postgres + RLS, Auth, Storage) |
 | Mạng | `connectivity_plus`, `http` |
@@ -51,7 +91,7 @@ Dự án theo **Clean Architecture, chia theo feature**: `domain` (entity, abstr
 lib/
 ├── main.dart                     # Khởi tạo Supabase; mobile: Isar, web: console overrides
 ├── core/
-│   ├── ai_pipeline/ai_config.dart    # Đường dẫn model, inputSize, ngưỡng tin cậy
+│   ├── ai_pipeline/ai_config.dart    # Model, inputSize, ngưỡng, ánh xạ lớp → loại hư hỏng, cỡ thẻ QR
 │   ├── database/local_db_init.dart   # initIsar() + isarInstanceProvider
 │   ├── network/                      # supabase_config (không commit), provider, connectivity
 │   ├── platform/app_mode.dart        # AppMode.field (mobile) / AppMode.console (web)
@@ -61,36 +101,37 @@ lib/
 │   └── widgets/                      # FieldlineShell (navigation), widget dùng chung
 └── features/
     ├── auth/              # Supabase Auth, màn đăng nhập/đăng ký, tài khoản
-    ├── edge_vision/       # Scanner + suy luận TFLite + panel chẩn đoán AI
-    ├── offline_audit/     # Phiếu kiểm kê, Isar, ảnh minh chứng, sync & auto-sync
+    ├── edge_vision/       # Scanner, suy luận TFLite, giải mã khung YOLO (NMS), bước đo
+    ├── damage_assessment/ # Đo theo thẻ QR, tính chỉ số/chi phí, bảng đơn giá, thẻ chi phí
+    ├── offline_audit/     # Phiếu kiểm tra, Isar, ảnh minh chứng, sync & auto-sync
     ├── canvas_signature/  # Ký xác nhận
-    ├── asset_catalog/     # Danh mục tài sản, editor, đối chiếu xung đột
+    ├── asset_catalog/     # Danh mục phòng & bề mặt, editor, đối chiếu xung đột
     ├── report_dashboard/  # Tổng quan, báo cáo, xem trước PDF
     ├── workspace/         # Địa điểm, Cài đặt
     └── cloud_console/     # Dữ liệu và overrides cho bản web
 
 supabase/
 ├── migrations/            # Thay đổi schema theo thời gian
-└── seed/assets_sample.sql # 5 tài sản mẫu
+└── seed/                  # 9 bề mặt mẫu của 2 tòa nhà, bảng đơn giá minh hoạ
 
 third_party/mobile_scanner/ # Bản vá mobile_scanner (xem PATCH_NOTES.md)
-assets/models/              # object_detection.tflite (~45 MB) + labels.txt
+assets/models/              # object_detection.tflite + labels.txt
+docs/ai-training/           # Hướng dẫn train model phân vùng 4 lớp bề mặt
 docs/kiem-thu/              # Biên bản kiểm thử thủ công
 ```
 
 ### Màn hình
 
-Tất cả màn hình đều đã hoàn thành. App hiện trường (iOS / Android / macOS) có đủ 9 nhóm màn. Bản web là trung tâm quản lý nên **cố ý không có** 4 màn làm việc ngoài hiện trường: router tự chuyển các route này về trang chủ (`fieldOnlyPaths` trong `lib/core/platform/app_mode.dart`).
-
 | Route | Màn hình | App hiện trường | Bản web |
 |---|---|:-:|:-:|
 | `/login`, `/register` | Đăng nhập / Đăng ký | ✅ | ✅ |
-| `/` | Tổng quan | ✅ | ✅ |
-| `/assets`, `/assets/new`, `/assets/:code` | Danh mục, thêm/sửa tài sản | ✅ | ✅ |
+| `/` | Tổng quan (có chi phí sửa chữa) | ✅ | ✅ |
+| `/assets`, `/assets/new`, `/assets/:code` | Phòng & bề mặt, thêm/sửa | ✅ | ✅ |
 | `/reports`, `/reports/preview` | Báo cáo, xem trước PDF | ✅ | ✅ |
+| `/repair-rates` | Bảng đơn giá sửa chữa (admin sửa) | ✅ | ✅ |
 | `/locations`, `/settings` | Địa điểm, Cài đặt | ✅ | ✅ |
-| `/scanner` | Quét mã + Edge AI | ✅ | — ¹ |
-| `/audit-form` | Lập phiếu kiểm kê | ✅ | — ² |
+| `/scanner` | Quét thẻ QR + đo hư hỏng | ✅ | — ¹ |
+| `/audit-form` | Lập phiếu, đánh giá bề mặt | ✅ | — ² |
 | `/signature` | Ký xác nhận | ✅ | — ² |
 | `/sync`, `/sync/conflicts` | Đồng bộ, đối chiếu xung đột | ✅ | — ³ |
 
@@ -101,42 +142,50 @@ Tất cả màn hình đều đã hoàn thành. App hiện trường (iOS / Andr
 
 ### Pipeline Edge AI
 
-- **Mô hình:** YOLOv8s (`best-new.pt`, huấn luyện ở 640) xuất sang TFLite float32 bằng LiteRT.
-  - Input: `1×3×640×640` (NCHW).
-  - Output: `1×(4+9)×8400` gồm `cx, cy, w, h` rồi đến điểm của từng lớp.
-  - So với model trước (`best.pt`, huấn luyện ở 800): mAP50-95 tập val từ 0.576 lên **0.761**, mAP50 từ 0.793 lên **0.855**, recall từ 0.760 lên **0.807**. Hai lần huấn luyện dùng tập dữ liệu khác nhau nên các số này chỉ để tham khảo.
-- **Phần cứng chạy:** iOS dùng **GPU delegate Metal** (cho phép FP16). Nếu Metal lỗi, app tự chuyển sang CPU 4 luồng. Đo trên iPhone 11 Pro Max: phần mô hình mất 98–153 ms (CPU cũ mất vài giây).
-- **Tiền xử lý:** AI chỉ nhận ô vuông giữa khung hình, cạnh bằng 70% cạnh ngắn (`AiConfig.cropFraction`), khớp với khung xanh trên màn quét.
-  - iOS: bản vá `mobile_scanner` cắt và thu nhỏ ô này về RGB 640×640 bằng CoreGraphics, gửi sang Dart qua khóa `aiInput`. Dart chỉ còn đổi mảng này sang tensor.
-  - Nền tảng khác: giải mã JPEG bằng `dart:ui` (thu nhỏ ngay lúc giải mã), rồi cắt ô giữa.
-- **Ngưỡng tin cậy:** `0.5` cho thiết bị, `0.7` cho nhóm hư hỏng (lớp 0, 1, 2, 5). Nhóm hư hỏng dùng ngưỡng cao hơn vì ma trận nhầm lẫn cho thấy các lớp này báo nhầm nhiều ở vùng nền.
-- **Bảo vệ CPU:** nếu AI đang xử lý thì bỏ qua (drop) frame mới.
-- **Bản vá `mobile_scanner` (iOS/macOS):**
-  1. Plugin gốc bỏ qua frame không có mã. Bản vá vẫn gửi frame (khoảng 2 frame/giây) để AI chạy được khi không có QR.
-  2. Gửi kèm `aiInput` (ảnh 640×640 đã cắt theo khung quét) như mô tả ở trên.
+- **Model hiện tại:** YOLOv8s phát hiện 9 lớp (từ phạm vi cũ), input `1×3×640×640`, output `1×(4+9)×8400`. App chỉ dùng 3 lớp hư hỏng:
+  - Vết nứt
+  - Gỉ sét (gộp cả "Khuyết tật kim loại")
+  - Thấm nước
 
-  Chi tiết xem `third_party/mobile_scanner/PATCH_NOTES.md`.
-  > ⚠️ Android **chưa vá**, nên trên Android AI chỉ chạy khi camera thấy mã.
-- **Hạn chế đã biết:** model hiện tại thiên về lớp **Aptomat**. Máy chiếu và tủ điện đóng cửa thường bị báo là Aptomat với độ tin cậy 90–95%, vết nứt đôi khi bị báo là Thấm nước. Cần bổ sung ảnh máy chiếu, tủ điện, vết nứt và cân bằng số ảnh giữa các lớp rồi huấn luyện lại.
+  Các lớp đồ vật bị bỏ qua. Ánh xạ nằm ở `AiConfig.damageTypeByClass`.
+- **Model thay thế (đang train):** YOLOv8n-seg **phân vùng 4 lớp bề mặt**: vết nứt, thấm/ẩm mốc, bong tróc sơn, gỉ sét. Model này đo theo mask thay vì khung chữ nhật. Hướng dẫn và script nằm ở [`docs/ai-training/HUONG_DAN_TRAIN_MODEL_BE_MAT.md`](docs/ai-training/HUONG_DAN_TRAIN_MODEL_BE_MAT.md).
+- **Giải mã:** mỗi ô lấy lớp có điểm cao nhất, lọc theo ngưỡng (`0.5` thường, `0.7` cho lớp hư hỏng), rồi NMS theo từng lớp (IoU 0,45).
+- **Phần cứng chạy:** iOS dùng **GPU delegate Metal** (cho phép FP16), lỗi thì tự chuyển sang CPU 4 luồng. Đo trên iPhone 11 Pro Max: phần mô hình mất 98–153 ms.
+- **Tiền xử lý:** AI chỉ nhận ô vuông giữa khung hình, cạnh bằng 70% cạnh ngắn (`AiConfig.cropFraction`), khớp khung xanh trên màn quét.
+  - **iOS:** bản vá `mobile_scanner` cắt ô này về RGB 640×640 bằng CoreGraphics và gửi qua khóa `aiInput`. Toạ độ góc mã QR và ô cắt cùng nằm trên một ảnh gốc, nên phép quy đổi kích thước không phụ thuộc chiều xoay máy.
+  - **Nền tảng khác:** giải mã JPEG bằng `dart:ui` rồi cắt ô giữa.
+- **Bản vá `mobile_scanner` (iOS/macOS):** vẫn gửi frame khi không có mã (khoảng 2 frame/giây) và gửi kèm `aiInput`. Chi tiết xem `third_party/mobile_scanner/PATCH_NOTES.md`.
+  > ⚠️ Android **chưa vá**, nên trên Android AI chỉ chạy khi camera thấy mã. Luồng đo vẫn hoạt động vì luôn quét thẻ QR, nhưng toạ độ góc mã trên Android chưa được kiểm tra.
+- **Hạn chế đã biết:**
+  - Số đo theo khung chữ nhật chỉ là ước lượng.
+  - Kết quả chỉ đúng khi thẻ QR và vùng hư hỏng nằm trên cùng mặt phẳng và chụp gần thẳng góc.
+  - Model cũ chưa có lớp bong tróc sơn.
 
 ### Dữ liệu
 
-**Isar — `AuditRecordModel`**
+**Isar: `AuditRecordModel`**
 
 | Nhóm | Trường |
 |---|---|
-| Tài sản | `scanCode`, `assetName`, `aiDetectedLabel`, `quantity` |
-| Vị trí & tình trạng | `area`, `location`, `condition`, `notes` |
+| Bề mặt | `scanCode`, `assetName`, `aiDetectedLabel`, `quantity` (chỉ dùng cho phiếu kiểm kê thường) |
+| Tòa nhà / phòng & tình trạng | `area` (tòa nhà / tầng), `location` (phòng), `condition`, `notes` |
+| Đánh giá hư hỏng | `damageAssessmentJson` (chất liệu, diện tích, số đo, kết quả từng loại kèm đơn giá lúc kiểm tra), `estimatedCost`, `damageIndex` |
 | Ký xác nhận | `signatureBytes`, `signerName`, `signerRole` |
 | Minh chứng | `photoFiles` |
 | Đồng bộ | `signatureUrl`, `timestamp`, `isSynced` |
 
-**Isar — `AssetModel`:** `name`, `category`, `area`, `location`, `quantity`, `status`, `lastAuditAt`, `updatedAt`, `isSynced`, cùng `baseJson` / `conflictJson` để đối chiếu 3 bên.
+**Isar: `AssetModel`** gồm:
+- `name`, `category` (chất liệu / loại), `area`, `location`, `quantity`, `surfaceAreaM2`, `status`
+- `lastAuditAt`, `updatedAt`, `isSynced`
+- `baseJson` / `conflictJson` để đối chiếu 3 bên
 
 **Supabase**
-- Bảng: `audit_records`, `assets`, `profiles`.
-- Storage bucket: `signatures` (ảnh chữ ký), `evidence` (ảnh minh chứng).
-- **RLS:** chỉ người đã đăng nhập mới truy cập được dữ liệu. Phiếu kiểm kê chỉ người tạo (`created_by`) được sửa.
+- **Bảng:** `audit_records`, `assets`, `profiles`, `repair_cost_rates`.
+- **Storage bucket:** `signatures` (ảnh chữ ký), `evidence` (ảnh minh chứng).
+- **RLS:**
+  - Chỉ người đã đăng nhập mới truy cập được dữ liệu.
+  - Phiếu chỉ người tạo (`created_by`) được sửa.
+  - Bảng đơn giá chỉ admin (`profiles.role = 'admin'`) được thêm, sửa, xoá.
 
 ## Cài đặt & chạy
 
@@ -145,6 +194,7 @@ Tất cả màn hình đều đã hoàn thành. App hiện trường (iOS / Andr
 - Xcode + CocoaPods (iOS/macOS); Android Studio + Android SDK (Android)
 - Một project Supabase
 - Máy thật để thử camera và AI (simulator không có camera)
+- Thẻ QR in đúng **10×10 cm**, nội dung là mã bề mặt trong danh mục
 
 ### 1. Lấy mã nguồn & cài package
 
@@ -179,7 +229,11 @@ Bước này giả định bảng `public.audit_records` và bucket `signatures`
 | `20261112090000_damage_assessment_and_repair_rates` | Tạo bảng đơn giá `repair_cost_rates` (chỉ admin sửa); thêm `damage_assessment`, `estimated_cost`, `damage_index` cho phiếu và `surface_area_m2` cho tài sản |
 | `20261112093000_revoke_anon_is_admin` | Không cho `anon` gọi hàm `is_admin()` qua API |
 
-Nếu cần dữ liệu mẫu, chạy thêm `supabase/seed/assets_sample.sql` và `supabase/seed/repair_cost_rates_sample.sql` (bảng đơn giá **minh hoạ**, không phải giá thật).
+Dữ liệu mẫu (tuỳ chọn):
+- `supabase/seed/assets_sample.sql`: 9 bề mặt trong 2 tòa nhà, có chất liệu và diện tích.
+- `supabase/seed/repair_cost_rates_sample.sql`: bảng đơn giá **minh hoạ**.
+
+Tạo tài khoản quản trị: xem hướng dẫn ở cuối migration `20261030090000_auth_profiles_and_rls.sql`.
 
 ### 4. Chạy
 
@@ -195,11 +249,8 @@ flutter run -d chrome       # bản web (trung tâm quản lý)
   - Quyền camera đã khai báo qua `NSCameraUsageDescription`.
 - **Android:**
   - Đã khai báo quyền `CAMERA`.
-  - Theo biên bản kiểm thử Sprint 6 có 2 lỗi build còn mở:
-    1. `tflite_flutter` lệch JVM target (11 so với 17).
-    2. `permission_handler_android` yêu cầu `compileSdk >= 37`.
-
-    Chi tiết xem `docs/kiem-thu/sprint6-card19.md`.
+  - Build APK release dùng `compileSdk 37` và đã chỉnh JVM target cho `tflite_flutter`.
+  - `mobile_scanner` chưa vá trên Android (xem phần Pipeline Edge AI).
 - **Web:** không có camera, AI hay lưu ngoại tuyến (xem phần Bản web ở trên).
 
 ## Kiểm thử
@@ -210,11 +261,12 @@ flutter test
 
 | Thư mục test | Phạm vi |
 |---|---|
-| `test/core/utils/` | PDF báo cáo, PDF danh sách tài sản, responsive layout |
+| `test/core/utils/` | PDF báo cáo, PDF danh sách, responsive layout |
 | `test/features/auth/` | Luồng đăng nhập/đăng ký |
-| `test/features/edge_vision/` | Use case xử lý mã quét, repository AI, màn quét, chẩn đoán AI |
+| `test/features/edge_vision/` | Giải mã khung YOLO + NMS, bước đo khi quét, repository AI, màn quét, chẩn đoán AI |
+| `test/features/damage_assessment/` | Đo theo thẻ QR, tính chỉ số/chi phí, bảng đơn giá (offline, khớp seed), phiếu có đánh giá, thống kê chi phí, PDF, màn đơn giá |
 | `test/features/offline_audit/` | Form, bản nháp, ảnh minh chứng, model cloud, sync, auto-sync |
-| `test/features/asset_catalog/` | Model, merge/đối chiếu, các màn tài sản |
+| `test/features/asset_catalog/` | Model, merge/đối chiếu, các màn danh mục |
 | `test/features/report_dashboard/` | Thống kê, chọn kỳ báo cáo, dashboard |
 | `test/features/workspace/`, `cloud_console/` | Địa điểm, Cài đặt, bản web |
 | `test/helpers/` | Fake cho auth và ảnh minh chứng |
@@ -235,6 +287,8 @@ Biên bản kiểm thử thủ công nằm trong `docs/kiem-thu/`.
 | 8 | 23–25 | Ảnh minh chứng, tự động đồng bộ, đối chiếu xung đột tài sản |
 | 9 | 26–28 | Supabase Auth + RLS, màn Địa điểm & Cài đặt, bản web quản lý |
 | 10 | — | Model YOLOv8s mới, Edge AI chạy GPU Metal, cắt ảnh theo khung quét ở phía native |
+| 11 | — | Thu hẹp phạm vi về cơ sở vật chất trường học: đo hư hỏng theo thẻ QR, chỉ số và chi phí sửa chữa, bảng đơn giá, báo cáo chi phí |
+| 12 | — | (Đang làm) Model phân vùng 4 lớp bề mặt, đo theo mask |
 
 ## Quy trình Git
 

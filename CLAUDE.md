@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Dự án
 
-Fieldline — app Flutter kiểm kê tài sản hiện trường (đồ án cuối kỳ). App hiện trường (iOS/Android/macOS) quét QR/barcode, chạy mô hình YOLOv8s TFLite ngay trên máy, lập phiếu kiểm kê ngoại tuyến bằng Isar, ký xác nhận, chụp ảnh minh chứng rồi đồng bộ lên Supabase. **Bản web là trung tâm quản lý**, đọc/ghi thẳng trên Supabase (không Isar, không camera, không AI). README.md là tài liệu chính về tính năng và cài đặt. Comment trong code, tài liệu và commit message đều viết bằng tiếng Việt.
+Fieldline — app Flutter đánh giá hư hỏng cơ sở vật chất trường học và ước tính chi phí sửa chữa (đồ án cuối kỳ; phạm vi cũ là kiểm kê tài sản hiện trường nên tên trường dữ liệu như `AssetModel`, `quantity` vẫn còn). App hiện trường (iOS/Android/macOS) quét thẻ QR trên bề mặt, chạy YOLO TFLite ngay trên máy để đo hư hỏng, lập phiếu ngoại tuyến bằng Isar, ký xác nhận, chụp ảnh minh chứng rồi đồng bộ lên Supabase. **Bản web là trung tâm quản lý**, đọc/ghi thẳng trên Supabase (không Isar, không camera, không AI). README.md là tài liệu chính về tính năng và cài đặt. Comment trong code, tài liệu và commit message đều viết bằng tiếng Việt.
 
 ## Lệnh thường dùng
 
