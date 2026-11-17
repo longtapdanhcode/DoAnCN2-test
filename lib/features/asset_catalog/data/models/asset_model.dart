@@ -34,6 +34,10 @@ class AssetModel {
   /// Số lượng theo danh mục.
   int quantity = 1;
 
+  /// Diện tích bề mặt (m²) khi tài sản là một bề mặt cần đánh giá hư hỏng
+  /// (tường, trần, cửa…); `null` với tài sản thông thường.
+  double? surfaceAreaM2;
+
   /// Mã tình trạng, xem [AssetStatus.code].
   String status = AssetStatus.good.code;
 
@@ -76,6 +80,8 @@ class AssetModel {
     'area': area,
     'location': location,
     'quantity': quantity,
+    // Chỉ gửi khi có: bảng chưa chạy migration vẫn đồng bộ được tài sản cũ.
+    if (surfaceAreaM2 != null) 'surface_area_m2': surfaceAreaM2,
     'status': status,
     'last_audit_at': lastAuditAt?.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -92,6 +98,7 @@ class AssetModel {
       ..area = json['area'] as String?
       ..location = json['location'] as String?
       ..quantity = (json['quantity'] as num?)?.toInt() ?? 1
+      ..surfaceAreaM2 = (json['surface_area_m2'] as num?)?.toDouble()
       ..status = AssetStatus.fromCode(json['status'] as String?).code
       ..lastAuditAt = parse(json['last_audit_at'])
       ..updatedAt = parse(json['updated_at']) ?? DateTime.now()

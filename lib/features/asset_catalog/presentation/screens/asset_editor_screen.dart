@@ -1,3 +1,4 @@
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/damage_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,6 +46,9 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
   final _area = TextEditingController();
   final _location = TextEditingController();
   final _quantity = TextEditingController(text: '1');
+
+  /// Diện tích bề mặt (m²) để tính chỉ số hư hại; để trống với tài sản thường.
+  final _surfaceArea = TextEditingController();
   AssetStatus _status = AssetStatus.good;
 
   /// Bản đang sửa (giữ lại các trường form không hiển thị như lastAuditAt).
@@ -74,6 +78,9 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
         _area.text = asset.area ?? '';
         _location.text = asset.location ?? '';
         _quantity.text = '${asset.quantity}';
+        _surfaceArea.text = asset.surfaceAreaM2 == null
+            ? ''
+            : formatDecimal(asset.surfaceAreaM2!);
         _status = asset.assetStatus;
       }
     });
@@ -81,7 +88,15 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
 
   @override
   void dispose() {
-    for (final c in [_code, _name, _category, _area, _location, _quantity]) {
+    for (final c in [
+      _code,
+      _name,
+      _category,
+      _area,
+      _location,
+      _quantity,
+      _surfaceArea,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -117,6 +132,7 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
       ..area = _clean(_area.text)
       ..location = _clean(_location.text)
       ..quantity = int.parse(_quantity.text.trim())
+      ..surfaceAreaM2 = parseDecimal(_surfaceArea.text)
       ..status = _status.code;
 
     try {
@@ -339,31 +355,57 @@ class _AssetEditorScreenState extends ConsumerState<AssetEditorScreen> {
             : null,
       ),
       category: FlTextField(
-        label: 'Loại thiết bị',
+        label: 'Chất liệu / loại',
         controller: _category,
-        hint: 'Ví dụ: Thiết bị truyền động',
+        hint: 'Ví dụ: Tường sơn, Kim loại, Gạch ốp / lát',
       ),
-      quantity: FlTextField(
-        label: 'Số lượng *',
-        controller: _quantity,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        validator: (v) {
-          final n = int.tryParse(v?.trim() ?? '');
-          if (n == null) return 'Vui lòng nhập số lượng';
-          if (n < 0) return 'Số lượng không hợp lệ';
-          return null;
-        },
+      quantity: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: FlTextField(
+              label: 'Số lượng *',
+              controller: _quantity,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              validator: (v) {
+                final n = int.tryParse(v?.trim() ?? '');
+                if (n == null) return 'Vui lòng nhập số lượng';
+                if (n < 0) return 'Số lượng không hợp lệ';
+                return null;
+              },
+            ),
+          ),
+          const Gap(12),
+          Expanded(
+            child: FlTextField(
+              label: 'Diện tích bề mặt (m²)',
+              controller: _surfaceArea,
+              hint: 'Ví dụ: 18,5',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return null;
+                final n = parseDecimal(v);
+                return n == null || n <= 0 ? 'Diện tích không hợp lệ' : null;
+              },
+            ),
+          ),
+        ],
       ),
       area: FlTextField(
-        label: 'Khu vực',
+        label: 'Tòa nhà / tầng',
         controller: _area,
-        hint: 'Ví dụ: Xưởng sản xuất A',
+        hint: 'Ví dụ: Nhà A • Tầng 2',
       ),
       location: FlTextField(
-        label: 'Vị trí cụ thể',
+        label: 'Phòng',
         controller: _location,
-        hint: 'Ví dụ: Dây chuyền 02 • Kệ A3',
+        hint: 'Ví dụ: Phòng A201',
       ),
       status: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -9,6 +9,7 @@ import 'package:signature/signature.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/damage_format.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
 
 /// Thông tin phiếu được truyền từ màn lập phiếu sang màn ký.
@@ -23,6 +24,7 @@ class AuditSummary {
     required this.condition,
     required this.conditionTone,
     required this.createdAt,
+    this.estimatedCost,
   });
 
   final String scanCode;
@@ -34,6 +36,13 @@ class AuditSummary {
   final String condition;
   final FlTone conditionTone;
   final DateTime createdAt;
+
+  /// Chi phí sửa chữa ước tính khi phiếu có đánh giá bề mặt; khi đó màn ký
+  /// hiện chi phí thay cho số lượng.
+  final double? estimatedCost;
+
+  String get amountLabel =>
+      estimatedCost != null ? formatVnd(estimatedCost!) : '$quantity thiết bị';
 
   String get displayName => name.isNotEmpty ? name : label;
 }
@@ -243,11 +252,13 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
           const Gap(12),
           KeyValueRow(label: 'Tài sản', value: _value(s?.displayName)),
           KeyValueRow(label: 'Mã tài sản', value: _value(s?.scanCode)),
-          KeyValueRow(label: 'Khu vực', value: _value(s?.area)),
-          KeyValueRow(label: 'Vị trí cụ thể', value: _value(s?.location)),
+          KeyValueRow(label: 'Tòa nhà / tầng', value: _value(s?.area)),
+          KeyValueRow(label: 'Phòng', value: _value(s?.location)),
           KeyValueRow(
-            label: 'Số lượng thực tế',
-            value: _value(s == null ? null : '${s.quantity} thiết bị'),
+            label: s?.estimatedCost != null
+                ? 'Chi phí ước tính'
+                : 'Số lượng thực tế',
+            value: _value(s?.amountLabel),
           ),
           KeyValueRow(label: 'Người kiểm kê', value: _value(_auditorName)),
           KeyValueRow(
@@ -429,8 +440,7 @@ class _SignatureScreenState extends ConsumerState<SignatureScreen> {
                   ],
                 ),
               ),
-              if (s != null)
-                StatusPill(label: '${s.quantity} thiết bị', bold: true),
+              if (s != null) StatusPill(label: s.amountLabel, bold: true),
             ],
           ),
         ),

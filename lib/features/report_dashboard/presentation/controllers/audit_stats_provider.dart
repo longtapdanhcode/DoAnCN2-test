@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/repair_cost_summary.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
 
@@ -13,6 +14,12 @@ final auditStatsProvider = Provider<AuditStats>((ref) {
     records: ref.watch(finalAuditRecordsProvider),
     now: DateTime.now(),
   );
+});
+
+/// Chi phí sửa chữa theo tình trạng hiện tại của mọi bề mặt (phiếu mới nhất
+/// của mỗi mã), cho màn Tổng quan.
+final repairCostSummaryProvider = Provider<RepairCostSummary>((ref) {
+  return RepairCostSummary.fromRecords(ref.watch(finalAuditRecordsProvider));
 });
 
 /// Tháng đang chọn ở màn Báo cáo; `null` nghĩa là tháng hiện tại.
@@ -65,4 +72,9 @@ final reportStatsProvider = Provider<AuditStats>((ref) {
     now: DateTime.now(),
     period: ref.watch(reportPeriodProvider),
   );
+});
+
+/// Chi phí sửa chữa của các phiếu trong kỳ báo cáo đang chọn.
+final reportRepairCostProvider = Provider<RepairCostSummary>((ref) {
+  return RepairCostSummary.fromRecords(ref.watch(reportRecordsProvider));
 });

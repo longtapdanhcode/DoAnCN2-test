@@ -152,13 +152,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Kho Tân Uyên'),
       'Nhà máy Long An',
     );
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Ca đêm'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Cả ngày'));
     await tester.tap(find.widgetWithText(FilledButton, 'Lưu'));
     await tester.pumpAndSettle();
 
     expect(
       workspaceStore.saved,
-      const WorkspaceSettings(siteName: 'Nhà máy Long An', shift: 'Ca đêm'),
+      const WorkspaceSettings(siteName: 'Nhà máy Long An', shift: 'Cả ngày'),
     );
     expect(find.text('Đã lưu nơi kiểm kê'), findsOneWidget);
   });
@@ -172,12 +172,12 @@ void main() {
   });
 
   test('WorkspaceSettings: JSON thiếu/sai thì dùng mặc định', () {
-    const s = WorkspaceSettings(siteName: 'Kho 1', shift: 'Ca đêm');
+    const s = WorkspaceSettings(siteName: 'Kho 1', shift: 'Cả ngày');
     expect(WorkspaceSettings.fromJson(s.toJson()), s);
     expect(
       WorkspaceSettings.fromJson(const {'site_name': ' ', 'shift': 'Ca 9'}),
       const WorkspaceSettings(),
     );
-    expect(s.summary, 'Kho 1  ·  Ca đêm');
+    expect(s.summary, 'Kho 1  ·  Cả ngày');
   });
 }

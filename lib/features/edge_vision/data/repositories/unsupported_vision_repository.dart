@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/vision_analysis.dart';
@@ -20,7 +22,12 @@ class UnsupportedVisionRepository implements VisionAiRepository {
   int get labelCount => 0;
 
   @override
-  Future<VisionAnalysis> analyze(List<int> imageBytes) async =>
+  Future<VisionAnalysis> analyze(
+    List<int> imageBytes, {
+    Uint8List? squareRgb,
+    int frameWidth = 0,
+    int frameHeight = 0,
+  }) async =>
       const VisionAnalysis();
 
   @override

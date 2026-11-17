@@ -8,20 +8,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:field_inventory_edge_ai/core/platform/prefs_json_store.dart';
 
 /// Ca làm việc hiển thị ở đầu Tổng quan.
-const workShifts = ['Ca sáng', 'Ca chiều', 'Ca đêm', 'Hành chính'];
+const workShifts = ['Buổi sáng', 'Buổi chiều', 'Cả ngày'];
 
-/// Nơi đang kiểm kê (tên nhà máy/kho) và ca làm việc, chọn ở Cài đặt.
+/// Nơi đang kiểm tra (tên trường/cơ sở) và buổi kiểm tra, chọn ở Cài đặt.
 @immutable
 class WorkspaceSettings {
   const WorkspaceSettings({
-    this.siteName = 'Nhà máy Bình An',
-    this.shift = 'Ca sáng',
+    this.siteName = 'Trường học',
+    this.shift = 'Buổi sáng',
   });
 
   final String siteName;
   final String shift;
 
-  /// Dòng hiển thị dưới thương hiệu ở Tổng quan (ví dụ "Nhà máy Bình An · Ca sáng").
+  /// Dòng hiển thị dưới thương hiệu ở Tổng quan (ví dụ "Trường học · Buổi sáng").
   String get summary => '$siteName  ·  $shift';
 
   WorkspaceSettings copyWith({String? siteName, String? shift}) =>

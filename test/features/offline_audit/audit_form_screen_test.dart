@@ -131,7 +131,7 @@ void main() {
 
       // Nhập khu vực, chọn tình trạng và ghi chú trước khi lưu
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Ví dụ: Xưởng sản xuất A'),
+        find.widgetWithText(TextFormField, 'Ví dụ: Nhà A • Tầng 2'),
         'Kho trung tâm',
       );
       await tester.tap(find.text('Cần kiểm tra'));

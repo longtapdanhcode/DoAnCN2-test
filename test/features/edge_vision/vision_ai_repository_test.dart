@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:field_inventory_edge_ai/core/ai_pipeline/ai_config.dart';
 import 'package:field_inventory_edge_ai/features/edge_vision/data/repositories/tflite_vision_repository_impl.dart';
@@ -79,5 +81,47 @@ void main() {
         isEmpty,
       );
     });
+  });
+
+  group('rgbaToInputTensor', () {
+    test('cắt ô giữa và tách kênh NCHW', () {
+      // Ảnh 642x642: tâm lệch 1 điểm mỗi chiều so với ô 640.
+      const w = 642, h = 642;
+      final rgba = Uint8List(w * h * 4);
+      // Điểm (1,1) của ảnh = góc trên trái của ô cắt.
+      final p = (1 * w + 1) * 4;
+      rgba[p] = 255;
+      rgba[p + 1] = 51;
+      rgba[p + 2] = 0;
+      final t = TfliteVisionRepositoryImpl.rgbaToInputTensor(rgba, w, h);
+      const plane = AiConfig.inputSize * AiConfig.inputSize;
+      expect(t.length, 3 * plane);
+      expect(t[0], closeTo(1.0, 1e-6));
+      expect(t[plane], closeTo(0.2, 1e-6));
+      expect(t[2 * plane], 0);
+    });
+
+    test('ảnh nhỏ hơn ô thì phần thiếu tô xám 114', () {
+      final t = TfliteVisionRepositoryImpl.rgbaToInputTensor(
+        Uint8List(10 * 10 * 4),
+        10,
+        10,
+      );
+      expect(t[0], closeTo(114 / 255, 1e-6));
+      const mid = 320 * AiConfig.inputSize + 320;
+      expect(t[mid], 0);
+    });
+  });
+
+  test('rgbToInputTensor tách kênh NCHW từ RGB liền nhau', () {
+    const plane = AiConfig.inputSize * AiConfig.inputSize;
+    final rgb = Uint8List(plane * 3);
+    rgb[3] = 255; // điểm thứ 2, kênh R
+    rgb[5] = 51; // điểm thứ 2, kênh B
+    final t = TfliteVisionRepositoryImpl.rgbToInputTensor(rgb);
+    expect(t.length, 3 * plane);
+    expect(t[1], closeTo(1.0, 1e-6));
+    expect(t[plane + 1], 0);
+    expect(t[2 * plane + 1], closeTo(0.2, 1e-6));
   });
 }

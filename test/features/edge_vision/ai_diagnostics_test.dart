@@ -33,7 +33,12 @@ class _FakeVision implements VisionAiRepository {
   Future<void> loadModel() async => loadCalls++;
 
   @override
-  Future<VisionAnalysis> analyze(List<int> imageBytes) async {
+  Future<VisionAnalysis> analyze(
+    List<int> imageBytes, {
+    Uint8List? squareRgb,
+    int frameWidth = 0,
+    int frameHeight = 0,
+  }) async {
     calls++;
     final p = pending;
     return p == null ? next : p.future;

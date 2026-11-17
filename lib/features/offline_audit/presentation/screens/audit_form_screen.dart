@@ -7,7 +7,15 @@ import 'package:go_router/go_router.dart';
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
 import 'package:field_inventory_edge_ai/features/canvas_signature/presentation/screens/signature_screen.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/data/repair_rate_repository.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_calculator.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_measurer.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/damage_enums.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/surface_assessment.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/surface_assessment_draft.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/surface_assessment_section.dart';
 
 import '../../data/evidence_photo_store.dart';
 import '../../data/models/audit_record_model.dart';
@@ -36,11 +44,15 @@ class AuditFormScreen extends ConsumerStatefulWidget {
   /// Khác `null` khi mở lại một bản nháp để ký và hoàn tất.
   final int? draftId;
 
+  /// Kết quả đo hư hỏng ở màn Quét (nếu có).
+  final FrameMeasurement? initialMeasurement;
+
   const AuditFormScreen({
     super.key,
     required this.initialScanCode,
     this.initialAiLabel,
     this.draftId,
+    this.initialMeasurement,
   });
 
   @override
@@ -70,6 +82,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
   int _quantity = 1;
   AuditCondition _condition = AuditCondition.good;
 
+  /// Phần đánh giá hư hỏng bề mặt (chất liệu, diện tích, các vùng hư hỏng).
+  final _assessment = SurfaceAssessmentDraft();
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +95,12 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       text: widget.initialAiLabel ?? '',
     );
     _nameController = TextEditingController(text: widget.initialAiLabel ?? '');
+    final measurement = widget.initialMeasurement;
+    if (measurement != null) _assessment.loadMeasurement(measurement);
+    // Phiếu đánh giá bề mặt không dùng số lượng: ẩn/hiện ô số lượng theo đó.
+    _assessmentUsed = _assessment.isUsed;
+    _assessment.addListener(_onAssessmentUsageChanged);
+    _suggestSurfaceAreaFromCatalog(widget.initialScanCode);
     if (widget.draftId != null) {
       // Phải lắng nghe (không dùng ref.read(...).future): Riverpod 3 tạm dừng
       // provider không có người nghe nên danh sách phiếu có thể không về.
@@ -89,6 +110,56 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
         fireImmediately: true,
       );
     }
+  }
+
+  /// Lấy diện tích bề mặt đã khai trong danh mục cho mã vừa quét.
+  Future<void> _suggestSurfaceAreaFromCatalog(String code) async {
+    if (code.trim().isEmpty) return;
+    try {
+      final asset = await ref
+          .read(assetCatalogRepositoryProvider)
+          .findByCode(code.trim());
+      if (!mounted || asset == null) return;
+      _assessment.suggestSurfaceArea(asset.surfaceAreaM2);
+      // Loại/chất liệu trong danh mục trùng tên chất liệu: dùng làm mặc định.
+      final category = asset.category?.trim().toLowerCase();
+      for (final m in SurfaceMaterial.values) {
+        if (category == m.label.toLowerCase() || category == m.code) {
+          _assessment.setMaterial(m);
+        }
+      }
+    } catch (e) {
+      // Bản web / chưa có danh mục: người kiểm kê tự nhập diện tích.
+      debugPrint('[AuditForm] Không tra được diện tích bề mặt: $e');
+    }
+  }
+
+  bool _assessmentUsed = false;
+
+  void _onAssessmentUsageChanged() {
+    if (_assessment.isUsed != _assessmentUsed && mounted) {
+      setState(() => _assessmentUsed = _assessment.isUsed);
+    }
+  }
+
+  /// Tình trạng đi theo mức hư hỏng nặng nhất mỗi khi kết quả tính thay đổi;
+  /// người kiểm kê vẫn chọn lại được.
+  void _onAssessmentChanged(SurfaceAssessment? a) {
+    if (a == null) return;
+    final suggested = conditionForAssessment(a);
+    if (suggested != _condition) setState(() => _condition = suggested);
+  }
+
+  /// Kiểm tra phần đánh giá và tính kết quả để lưu; `false` khi còn lỗi.
+  Future<(bool, SurfaceAssessment?)> _computeAssessment() async {
+    final error = _assessment.validate();
+    if (error != null) {
+      showFlSnack(context, error, tone: FlTone.warning);
+      return (false, null);
+    }
+    if (!_assessment.isUsed) return (true, null);
+    final calculator = await ref.read(damageCalculatorProvider.future);
+    return (true, _assessment.assess(calculator));
   }
 
   ProviderSubscription<AsyncValue<List<AuditRecordModel>>>? _draftSub;
@@ -116,6 +187,8 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
           ..clear()
           ..addAll(draft.photoFiles ?? const []);
       });
+      final saved = draft.surfaceAssessment;
+      if (saved != null) _assessment.loadAssessment(saved);
       _loadPhotoBytes();
     });
   }
@@ -134,6 +207,8 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     _areaController.dispose();
     _locationController.dispose();
     _notesController.dispose();
+    _assessment.removeListener(_onAssessmentUsageChanged);
+    _assessment.dispose();
     super.dispose();
   }
 
@@ -152,12 +227,22 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     condition: _condition.label,
     conditionTone: _condition.tone,
     createdAt: _createdAt,
+    estimatedCost: _estimatedCost,
   );
+
+  /// Chi phí đang tính trên phần đánh giá (nếu có và hợp lệ).
+  double? get _estimatedCost {
+    final calculator = ref.read(damageCalculatorProvider).value;
+    if (calculator == null) return null;
+    return _assessment.assess(calculator)?.totalCost;
+  }
 
   /// Kiểm tra form, mở màn hình ký và lưu phiếu khi đã có chữ ký.
   Future<void> _continueToSignature() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    final (ok, _) = await _computeAssessment();
+    if (!ok || !mounted) return;
 
     final signed = await context.push<SignatureResult?>(
       '/signature',
@@ -172,6 +257,8 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
   Future<void> _save(SignatureResult? signed) async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    final (ok, assessment) = await _computeAssessment();
+    if (!ok || !mounted) return;
 
     final controller = ref.read(auditFormControllerProvider.notifier);
     final isSuccess = await controller.submitForm(
@@ -188,6 +275,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       signerRole: signed?.signerRole,
       draftId: widget.draftId,
       photoFiles: List.of(_photoFiles),
+      assessment: assessment,
     );
 
     if (isSuccess) {
@@ -268,10 +356,10 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
               const Gap(16),
               Expanded(
                 child: _Field(
-                  label: 'Loại thiết bị *',
+                  label: 'Hạng mục / loại *',
                   controller: _aiLabelController,
                   hint: 'Ví dụ: Động cơ điện',
-                  validator: (v) => _required(v, 'Vui lòng nhập loại thiết bị'),
+                  validator: (v) => _required(v, 'Vui lòng nhập hạng mục'),
                 ),
               ),
             ],
@@ -287,9 +375,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             children: [
               Expanded(
                 child: _Field(
-                  label: 'Khu vực kiểm kê',
+                  label: 'Tòa nhà / tầng',
                   controller: _areaController,
-                  hint: 'Ví dụ: Xưởng sản xuất A',
+                  hint: 'Ví dụ: Nhà A • Tầng 2',
                 ),
               ),
               const Gap(16),
@@ -297,10 +385,17 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
                 child: _Field(
                   label: 'Vị trí cụ thể',
                   controller: _locationController,
-                  hint: 'Ví dụ: Dây chuyền 02 • Kệ A3',
+                  hint: 'Ví dụ: Phòng A201',
                 ),
               ),
             ],
+          ),
+          const Gap(20),
+          const _FieldLabel('Đánh giá hư hỏng bề mặt'),
+          SurfaceAssessmentSection(
+            draft: _assessment,
+            enabled: !isSaving,
+            onAssessmentChanged: _onAssessmentChanged,
           ),
           const Gap(20),
           const _FieldLabel('Tình trạng thực tế *'),
@@ -333,29 +428,31 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     final side = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FlCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const CardHeader(title: 'Số lượng thực tế'),
-              const Gap(16),
-              _QuantityStepper(
-                quantity: _quantity,
-                enabled: !isSaving,
-                onChanged: _adjustQuantity,
-              ),
-              const Gap(12),
-              _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity),
-              const Gap(14),
-              const Text(
-                'Số lượng được ghi cùng phiếu và đối chiếu khi đồng bộ.',
-                style: TextStyle(fontSize: 11, color: FlColors.primary),
-              ),
-            ],
+        if (!_assessmentUsed) ...[
+          FlCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const CardHeader(title: 'Số lượng thực tế'),
+                const Gap(16),
+                _QuantityStepper(
+                  quantity: _quantity,
+                  enabled: !isSaving,
+                  onChanged: _adjustQuantity,
+                ),
+                const Gap(12),
+                _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity),
+                const Gap(14),
+                const Text(
+                  'Số lượng được ghi cùng phiếu và đối chiếu khi đồng bộ.',
+                  style: TextStyle(fontSize: 11, color: FlColors.primary),
+                ),
+              ],
+            ),
           ),
-        ),
-        const Gap(16),
+          const Gap(16),
+        ],
         FlCard(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -400,7 +497,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
       children: [
         if (hasAi) ...[
           const InfoBanner(
-            title: 'Thông tin thiết bị đã được điền từ kết quả AI.',
+            title: 'Thông tin đã được điền từ kết quả AI.',
             subtitle: 'Bạn có thể điều chỉnh trước khi lưu phiếu.',
             trailing: StatusPill(label: 'Bản nháp', tone: FlTone.neutral),
           ),
@@ -525,11 +622,11 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
             ),
           if (widget.initialScanCode.isEmpty) const Gap(12),
           _Field(
-            label: 'Loại thiết bị *',
+            label: 'Hạng mục / loại *',
             controller: _aiLabelController,
             hint: 'Ví dụ: Máy khoan',
             onChanged: (_) => setState(() {}),
-            validator: (v) => _required(v, 'Vui lòng nhập loại thiết bị'),
+            validator: (v) => _required(v, 'Vui lòng nhập hạng mục'),
           ),
         ],
         const Gap(16),
@@ -545,9 +642,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
           children: [
             Expanded(
               child: _Field(
-                label: 'Khu vực kiểm kê',
+                label: 'Tòa nhà / tầng',
                 controller: _areaController,
-                hint: 'Khu vực A',
+                hint: 'Nhà A',
               ),
             ),
             const Gap(10),
@@ -555,25 +652,34 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
               child: _Field(
                 label: 'Vị trí cụ thể',
                 controller: _locationController,
-                hint: 'Kệ A3',
+                hint: 'A201',
               ),
             ),
           ],
         ),
         const Gap(22),
-        const _MobileTitle('Số lượng thực tế'),
-        _QuantityStepper(
-          quantity: _quantity,
+        if (!_assessmentUsed) ...[
+          const _MobileTitle('Số lượng thực tế'),
+          _QuantityStepper(
+            quantity: _quantity,
+            enabled: !isSaving,
+            onChanged: _adjustQuantity,
+            surface: FlColors.surface,
+          ),
+          const Gap(18),
+          const SectionLabel('Thêm nhanh'),
+          const Gap(8),
+          _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity, compact: true),
+          const Gap(22),
+        ],
+        const _MobileTitle('Đánh giá hư hỏng bề mặt'),
+        SurfaceAssessmentSection(
+          draft: _assessment,
           enabled: !isSaving,
-          onChanged: _adjustQuantity,
-          surface: FlColors.surface,
+          onAssessmentChanged: _onAssessmentChanged,
         ),
-        const Gap(18),
-        const SectionLabel('Thêm nhanh'),
-        const Gap(8),
-        _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity, compact: true),
         const Gap(22),
-        const _MobileTitle('Tình trạng thiết bị'),
+        const _MobileTitle('Tình trạng'),
         Row(
           children: [
             for (final (i, c) in AuditCondition.values.indexed) ...[

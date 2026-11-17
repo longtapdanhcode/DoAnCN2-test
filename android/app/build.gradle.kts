@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.field_inventory_edge_ai"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android biên dịch với SDK 37; app phải >= mức đó.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

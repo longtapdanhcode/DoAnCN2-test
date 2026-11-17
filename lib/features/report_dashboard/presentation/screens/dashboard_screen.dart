@@ -10,6 +10,8 @@ import 'package:field_inventory_edge_ai/features/auth/presentation/account_sheet
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/audit_labels.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/repair_cost_card.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_form_controller.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_records_provider.dart';
@@ -126,7 +128,7 @@ class DesktopDashboard extends ConsumerWidget {
               _StatCard(
                 label: 'Tổng tài sản',
                 value: stats.totalAssets,
-                caption: '${stats.areas.length} khu vực trong danh mục',
+                caption: '${stats.areas.length} tòa nhà trong danh mục',
                 icon: Icons.inventory_2_outlined,
                 tone: FlTone.success,
                 onTap: () => context.go('/assets'),
@@ -171,6 +173,8 @@ class DesktopDashboard extends ConsumerWidget {
             return FlGrid(columns: perRow, spacing: 16, children: cards);
           },
         ),
+        const Gap(16),
+        RepairCostCard(summary: ref.watch(repairCostSummaryProvider)),
         const Gap(16),
         FlSplitRow(
           main: _AreaProgressCard(stats: stats),
@@ -269,7 +273,7 @@ class _AreaProgressCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           CardHeader(
-            title: 'Tiến độ kiểm kê theo khu vực',
+            title: 'Tiến độ kiểm tra theo tòa nhà',
             subtitle: 'Kỳ kiểm kê ${stats.periodLabel.toLowerCase()}',
             trailing: stats.totalAssets > 0 && stats.notAudited == 0
                 ? const StatusPill(label: 'Hoàn tất')
@@ -399,7 +403,7 @@ class _EdgeAiCard extends StatelessWidget {
               ),
               Gap(10),
               Text(
-                'Quét mã hoặc nhận diện thiết bị ngay trên máy, kể cả khi không có mạng.',
+                'Quét thẻ QR trên bề mặt, AI đo hư hỏng ngay trên máy, kể cả khi không có mạng.',
                 style: TextStyle(
                   fontSize: 13,
                   color: FlColors.muted,
@@ -412,7 +416,7 @@ class _EdgeAiCard extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => context.go('/scanner'),
             icon: const Icon(Icons.center_focus_strong_outlined, size: 18),
-            label: const Text('Bắt đầu quét thiết bị'),
+            label: const Text('Bắt đầu quét'),
           ),
         ],
       ),
@@ -459,7 +463,7 @@ class _RecentAuditsCard extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 28),
               child: Text(
-                'Chưa có phiếu kiểm kê nào trên máy. Quét thiết bị để tạo phiếu đầu tiên.',
+                'Chưa có phiếu kiểm kê nào trên máy. Quét thẻ QR trên bề mặt để tạo phiếu đầu tiên.',
                 style: TextStyle(fontSize: 13, color: FlColors.muted),
               ),
             ),
@@ -500,7 +504,7 @@ class _RecentAuditsCard extends ConsumerWidget {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '${r.quantity} thiết bị',
+                        auditAmountLabel(r),
                         style: const TextStyle(
                           fontSize: 12,
                           color: FlColors.muted,
@@ -564,7 +568,7 @@ class _AttentionCard extends StatelessWidget {
           const Gap(24),
           _AttentionRow(
             count: stats.damaged,
-            title: 'Thiết bị hư hỏng',
+            title: 'Hạng mục hư hỏng',
             subtitle: 'Ưu tiên kiểm tra trong hôm nay',
             tone: FlTone.danger,
             onTap: () => context.go('/assets'),
@@ -817,17 +821,24 @@ class MobileDashboard extends ConsumerWidget {
                       ),
                       const Gap(6),
                       const Text(
-                        'Quét mã QR hoặc nhận diện thiết bị bằng AI',
+                        'Quét thẻ QR, AI đo hư hỏng bề mặt',
                         style: TextStyle(fontSize: 12, color: FlColors.muted),
                       ),
                       const Gap(14),
                       MobilePrimaryButton(
-                        label: 'Quét thiết bị',
+                        label: 'Quét bề mặt',
                         onPressed: () => context.go('/scanner'),
                       ),
                     ],
                   ),
                 ),
+              const Gap(16),
+              // Dưới nút bắt đầu quét: việc chính ở hiện trường vẫn hiện đầu.
+              RepairCostCard(
+                summary: ref.watch(repairCostSummaryProvider),
+                compact: true,
+                maxRooms: 3,
+              ),
               const Gap(24),
               if (drafts.isNotEmpty) ...[
                 const SectionLabel('Bản nháp chờ ký'),
@@ -945,8 +956,8 @@ class _MobileRecentAudit extends ConsumerWidget {
                 const Gap(4),
                 Text(
                   record.isDraft
-                      ? '${record.quantity} thiết bị  ·  Bản nháp, chạm để ký'
-                      : '${record.quantity} thiết bị  ·  ${record.isSynced ? 'Đã đồng bộ' : 'Lưu ngoại tuyến'}',
+                      ? '${auditAmountLabel(record)}  ·  Bản nháp, chạm để ký'
+                      : '${auditAmountLabel(record)}  ·  ${record.isSynced ? 'Đã đồng bộ' : 'Lưu ngoại tuyến'}',
                   style: const TextStyle(fontSize: 12, color: FlColors.muted),
                 ),
                 const Gap(4),

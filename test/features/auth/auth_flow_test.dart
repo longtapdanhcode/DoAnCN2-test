@@ -44,12 +44,12 @@ void main() {
     testWidgets('Chưa đăng nhập thì vào màn Đăng nhập', (tester) async {
       await pumpApp(tester);
       expect(find.text('Đăng nhập'), findsWidgets);
-      expect(find.text('Quét thiết bị'), findsNothing);
+      expect(find.text('Quét bề mặt'), findsNothing);
     });
 
     testWidgets('Đã có phiên trên máy thì vào thẳng Tổng quan', (tester) async {
       await pumpApp(tester, user: testUser);
-      expect(find.text('Quét thiết bị'), findsOneWidget);
+      expect(find.text('Quét bề mặt'), findsOneWidget);
     });
 
     testWidgets('Đăng nhập đúng thì chuyển vào Tổng quan', (tester) async {
@@ -60,7 +60,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(auth.lastPassword, 'matkhau1');
-      expect(find.text('Quét thiết bị'), findsOneWidget);
+      expect(find.text('Quét bề mặt'), findsOneWidget);
     });
 
     testWidgets('Sai mật khẩu thì báo lỗi và ở lại màn đăng nhập', (
@@ -74,7 +74,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Email hoặc mật khẩu không đúng.'), findsOneWidget);
-      expect(find.text('Quét thiết bị'), findsNothing);
+      expect(find.text('Quét bề mặt'), findsNothing);
     });
 
     testWidgets('Bỏ trống thì không gửi yêu cầu', (tester) async {
@@ -131,7 +131,7 @@ void main() {
       await fill(tester);
 
       expect(auth.lastFullName, 'Trần Bình');
-      expect(find.text('Quét thiết bị'), findsOneWidget);
+      expect(find.text('Quét bề mặt'), findsOneWidget);
     });
 
     testWidgets('Cần xác nhận email thì báo đã gửi thư', (tester) async {

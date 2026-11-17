@@ -148,13 +148,13 @@ class _WorkspaceSectionState extends ConsumerState<_WorkspaceSection> {
       title: 'Nơi kiểm kê',
       children: [
         FlTextField(
-          label: 'Tên nhà máy / kho',
+          label: 'Tên trường / cơ sở',
           controller: _site,
           textCapitalization: TextCapitalization.words,
         ),
         const Gap(14),
         const Text(
-          'Ca làm việc',
+          'Buổi kiểm tra',
           style: TextStyle(fontSize: 12, color: FlColors.muted),
         ),
         const Gap(8),

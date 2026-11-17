@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/controllers/asset_catalog_providers.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/surface_assessment.dart';
 
 import '../../data/evidence_photo_store.dart';
 import '../../data/models/audit_record_model.dart';
@@ -65,6 +66,9 @@ class AuditFormController extends _$AuditFormController {
     /// Khi hoàn tất một bản nháp: ghi đè chính phiếu đó thay vì tạo phiếu mới.
     int? draftId,
     List<String>? photoFiles,
+
+    /// Đánh giá hư hỏng bề mặt (chỉ số, chi phí) nếu phiếu có đánh giá.
+    SurfaceAssessment? assessment,
   }) async {
     state = state.copyWith(status: AuditFormStatus.saving, errorMessage: null);
 
@@ -89,7 +93,8 @@ class AuditFormController extends _$AuditFormController {
             ? null
             : List.of(photoFiles)
         ..timestamp = DateTime.now()
-        ..isSynced = false;
+        ..isSynced = false
+        ..applyAssessment(assessment);
 
       await repository.saveRecord(record);
       // Bản nháp chưa tính là đã kiểm kê: chỉ phiếu đã ký mới cập nhật tài sản.

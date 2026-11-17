@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:field_inventory_edge_ai/features/asset_catalog/presentation/screens/asset_conflicts_screen.dart';
 import 'package:field_inventory_edge_ai/core/platform/app_mode.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/auth_providers.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage_measurer.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/repair_rates_screen.dart';
 import 'package:field_inventory_edge_ai/features/auth/presentation/screens/auth_screens.dart';
 import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/locations_screen.dart';
 import 'package:field_inventory_edge_ai/features/workspace/presentation/screens/settings_screen.dart';
@@ -114,6 +116,9 @@ GoRouter goRouter(Ref ref) {
                 initialScanCode: scanCode,
                 initialAiLabel: aiLabel,
                 draftId: extra?['draftId'] as int?,
+                initialMeasurement: extra?['measurement'] is FrameMeasurement
+                    ? extra!['measurement'] as FrameMeasurement
+                    : null,
               );
             },
           ),
@@ -144,6 +149,12 @@ GoRouter goRouter(Ref ref) {
             name: 'locations',
             pageBuilder: (context, state) =>
                 _tab(state, const LocationsScreen()),
+          ),
+          GoRoute(
+            path: '/repair-rates',
+            name: 'repair-rates',
+            pageBuilder: (context, state) =>
+                _tab(state, const RepairRatesScreen()),
           ),
           GoRoute(
             path: '/settings',

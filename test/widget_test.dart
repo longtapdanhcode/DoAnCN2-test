@@ -28,7 +28,7 @@ void main() {
 
     // Màn hình thử 800×600 dùng bố cục mobile: header Fieldline + thanh điều hướng.
     expect(find.text('FIELDLINE'), findsOneWidget);
-    expect(find.text('Quét thiết bị'), findsOneWidget);
+    expect(find.text('Quét bề mặt'), findsOneWidget);
     expect(find.text('Tài sản'), findsWidgets);
   });
 }
