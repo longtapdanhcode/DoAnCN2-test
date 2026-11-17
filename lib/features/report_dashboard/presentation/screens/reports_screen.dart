@@ -7,6 +7,7 @@ import 'package:field_inventory_edge_ai/features/auth/presentation/auth_provider
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/audit_labels.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/repair_cost_card.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/audit_actions.dart';
@@ -349,7 +350,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const Gap(3),
                       Text(
-                        '${flDate(r.timestamp ?? DateTime.now())}  ·  ${r.quantity} thiết bị',
+                        '${flDate(r.timestamp ?? DateTime.now())}  ·  ${auditAmountLabel(r)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: FlColors.muted,
@@ -451,7 +452,7 @@ class _ReportListItem extends StatelessWidget {
           ),
           const Gap(10),
           Text(
-            '${auditTitle(record)} • ${record.quantity} thiết bị',
+            '${auditTitle(record)} • ${auditAmountLabel(record)}',
             style: const TextStyle(fontSize: 12, color: FlColors.muted),
           ),
           const Gap(8),

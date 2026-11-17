@@ -10,6 +10,7 @@ import 'package:field_inventory_edge_ai/features/auth/presentation/account_sheet
 import 'package:field_inventory_edge_ai/core/theme/fieldline_theme.dart';
 import 'package:field_inventory_edge_ai/core/utils/responsive_layout.dart';
 import 'package:field_inventory_edge_ai/core/widgets/fieldline_widgets.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/audit_labels.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/repair_cost_card.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/presentation/controllers/audit_form_controller.dart';
@@ -503,7 +504,7 @@ class _RecentAuditsCard extends ConsumerWidget {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '${r.quantity} thiết bị',
+                        auditAmountLabel(r),
                         style: const TextStyle(
                           fontSize: 12,
                           color: FlColors.muted,
@@ -955,8 +956,8 @@ class _MobileRecentAudit extends ConsumerWidget {
                 const Gap(4),
                 Text(
                   record.isDraft
-                      ? '${record.quantity} thiết bị  ·  Bản nháp, chạm để ký'
-                      : '${record.quantity} thiết bị  ·  ${record.isSynced ? 'Đã đồng bộ' : 'Lưu ngoại tuyến'}',
+                      ? '${auditAmountLabel(record)}  ·  Bản nháp, chạm để ký'
+                      : '${auditAmountLabel(record)}  ·  ${record.isSynced ? 'Đã đồng bộ' : 'Lưu ngoại tuyến'}',
                   style: const TextStyle(fontSize: 12, color: FlColors.muted),
                 ),
                 const Gap(4),

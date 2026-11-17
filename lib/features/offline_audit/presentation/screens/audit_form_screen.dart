@@ -97,6 +97,9 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     _nameController = TextEditingController(text: widget.initialAiLabel ?? '');
     final measurement = widget.initialMeasurement;
     if (measurement != null) _assessment.loadMeasurement(measurement);
+    // Phiếu đánh giá bề mặt không dùng số lượng: ẩn/hiện ô số lượng theo đó.
+    _assessmentUsed = _assessment.isUsed;
+    _assessment.addListener(_onAssessmentUsageChanged);
     _suggestSurfaceAreaFromCatalog(widget.initialScanCode);
     if (widget.draftId != null) {
       // Phải lắng nghe (không dùng ref.read(...).future): Riverpod 3 tạm dừng
@@ -128,6 +131,14 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     } catch (e) {
       // Bản web / chưa có danh mục: người kiểm kê tự nhập diện tích.
       debugPrint('[AuditForm] Không tra được diện tích bề mặt: $e');
+    }
+  }
+
+  bool _assessmentUsed = false;
+
+  void _onAssessmentUsageChanged() {
+    if (_assessment.isUsed != _assessmentUsed && mounted) {
+      setState(() => _assessmentUsed = _assessment.isUsed);
     }
   }
 
@@ -196,6 +207,7 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     _areaController.dispose();
     _locationController.dispose();
     _notesController.dispose();
+    _assessment.removeListener(_onAssessmentUsageChanged);
     _assessment.dispose();
     super.dispose();
   }
@@ -215,7 +227,15 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     condition: _condition.label,
     conditionTone: _condition.tone,
     createdAt: _createdAt,
+    estimatedCost: _estimatedCost,
   );
+
+  /// Chi phí đang tính trên phần đánh giá (nếu có và hợp lệ).
+  double? get _estimatedCost {
+    final calculator = ref.read(damageCalculatorProvider).value;
+    if (calculator == null) return null;
+    return _assessment.assess(calculator)?.totalCost;
+  }
 
   /// Kiểm tra form, mở màn hình ký và lưu phiếu khi đã có chữ ký.
   Future<void> _continueToSignature() async {
@@ -408,29 +428,31 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
     final side = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FlCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const CardHeader(title: 'Số lượng thực tế'),
-              const Gap(16),
-              _QuantityStepper(
-                quantity: _quantity,
-                enabled: !isSaving,
-                onChanged: _adjustQuantity,
-              ),
-              const Gap(12),
-              _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity),
-              const Gap(14),
-              const Text(
-                'Số lượng được ghi cùng phiếu và đối chiếu khi đồng bộ.',
-                style: TextStyle(fontSize: 11, color: FlColors.primary),
-              ),
-            ],
+        if (!_assessmentUsed) ...[
+          FlCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const CardHeader(title: 'Số lượng thực tế'),
+                const Gap(16),
+                _QuantityStepper(
+                  quantity: _quantity,
+                  enabled: !isSaving,
+                  onChanged: _adjustQuantity,
+                ),
+                const Gap(12),
+                _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity),
+                const Gap(14),
+                const Text(
+                  'Số lượng được ghi cùng phiếu và đối chiếu khi đồng bộ.',
+                  style: TextStyle(fontSize: 11, color: FlColors.primary),
+                ),
+              ],
+            ),
           ),
-        ),
-        const Gap(16),
+          const Gap(16),
+        ],
         FlCard(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -636,18 +658,20 @@ class _AuditFormScreenState extends ConsumerState<AuditFormScreen> {
           ],
         ),
         const Gap(22),
-        const _MobileTitle('Số lượng thực tế'),
-        _QuantityStepper(
-          quantity: _quantity,
-          enabled: !isSaving,
-          onChanged: _adjustQuantity,
-          surface: FlColors.surface,
-        ),
-        const Gap(18),
-        const SectionLabel('Thêm nhanh'),
-        const Gap(8),
-        _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity, compact: true),
-        const Gap(22),
+        if (!_assessmentUsed) ...[
+          const _MobileTitle('Số lượng thực tế'),
+          _QuantityStepper(
+            quantity: _quantity,
+            enabled: !isSaving,
+            onChanged: _adjustQuantity,
+            surface: FlColors.surface,
+          ),
+          const Gap(18),
+          const SectionLabel('Thêm nhanh'),
+          const Gap(8),
+          _QuickAdd(enabled: !isSaving, onAdd: _adjustQuantity, compact: true),
+          const Gap(22),
+        ],
         const _MobileTitle('Đánh giá hư hỏng bề mặt'),
         SurfaceAssessmentSection(
           draft: _assessment,

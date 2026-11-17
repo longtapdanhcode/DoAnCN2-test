@@ -171,7 +171,12 @@ class PdfReportGenerator {
     final dateTime = DateFormat('dd/MM/yyyy HH:mm');
     final generatedAt = dateTime.format(DateTime.now());
 
-    final totalQuantity = records.fold<int>(0, (sum, r) => sum + r.quantity);
+    // Phiếu đánh giá bề mặt không có số lượng: không cộng vào tổng.
+    bool assessed(AuditRecordModel r) => r.damageAssessmentJson != null;
+    final allAssessed = records.isNotEmpty && records.every(assessed);
+    final totalQuantity = records
+        .where((r) => !assessed(r))
+        .fold<int>(0, (sum, r) => sum + r.quantity);
     final distinctAssets = records
         .map((r) => r.scanCode?.trim().toUpperCase())
         .whereType<String>()
@@ -355,7 +360,10 @@ class PdfReportGenerator {
                         pw.Row(
                           children: [
                             pw.Expanded(
-                              child: field('Số lượng kiểm kê', '${r.quantity}'),
+                              child: field(
+                                'Số lượng kiểm kê',
+                                assessed(r) ? '-' : '${r.quantity}',
+                              ),
                             ),
                             pw.Expanded(
                               child: field(
@@ -568,7 +576,9 @@ class PdfReportGenerator {
                 pw.SizedBox(width: 8),
                 stat('Tài sản khác nhau', '$distinctAssets'),
                 pw.SizedBox(width: 8),
-                stat('Tổng số lượng', '$totalQuantity'),
+                allAssessed
+                    ? stat('Chi phí ước tính', formatVnd(cost.totalCost))
+                    : stat('Tổng số lượng', '$totalQuantity'),
                 pw.SizedBox(width: 8),
                 stat(
                   'Cần xử lý',
@@ -606,7 +616,7 @@ class PdfReportGenerator {
                         ? '-'
                         : [r.area, r.location].whereType<String>().join(' • '),
                     AuditCondition.fromCode(r.condition)?.label ?? '-',
-                    '${r.quantity}',
+                    assessed(r) ? '-' : '${r.quantity}',
                     r.timestamp != null ? dateTime.format(r.timestamp!) : '-',
                   ],
               ],
@@ -659,7 +669,9 @@ class PdfReportGenerator {
                   border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
                 ),
                 child: pw.Text(
-                  'TỔNG SỐ LƯỢNG THIẾT BỊ: $totalQuantity',
+                  allAssessed
+                      ? 'TỔNG CHI PHÍ SỬA CHỮA ƯỚC TÍNH: ${formatVnd(cost.totalCost)}'
+                      : 'TỔNG SỐ LƯỢNG THIẾT BỊ: $totalQuantity',
                   style: pw.TextStyle(
                     font: boldFont,
                     fontSize: 11,

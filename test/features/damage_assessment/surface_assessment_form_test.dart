@@ -12,6 +12,7 @@ import 'package:field_inventory_edge_ai/features/damage_assessment/domain/damage
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/damage_enums.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/repair_rate.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/domain/entities/surface_assessment.dart';
+import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/audit_labels.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/damage_format.dart';
 import 'package:field_inventory_edge_ai/features/damage_assessment/presentation/surface_assessment_draft.dart';
 import 'package:field_inventory_edge_ai/features/offline_audit/data/models/audit_record_model.dart';
@@ -61,6 +62,25 @@ void main() {
       expect(parseDecimal('abc'), isNull);
     });
   });
+
+  test(
+    'Danh sách phiếu: phiếu đánh giá hiện chi phí, phiếu thường hiện số lượng',
+    () {
+      final plain = AuditRecordModel(1)..quantity = 3;
+      expect(auditAmountLabel(plain), '3 thiết bị');
+      final assessed = AuditRecordModel(2)
+        ..applyAssessment(
+          const DamageCalculator(_table).assess(
+            material: SurfaceMaterial.paintedWall,
+            surfaceAreaM2: 10,
+            measurements: const [
+              DamageMeasurement(type: DamageType.waterMold, quantity: 1),
+            ],
+          ),
+        );
+      expect(auditAmountLabel(assessed), '220.000 đ');
+    },
+  );
 
   group('SurfaceAssessmentDraft', () {
     test('Chưa nhập gì: không bắt lỗi, không có đánh giá', () {
@@ -168,6 +188,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Đánh giá hư hỏng bề mặt'), findsOneWidget);
+        // Phiếu đánh giá bề mặt không dùng số lượng.
+        expect(find.text('Số lượng thực tế'), findsNothing);
         expect(find.text('1,5'), findsOneWidget);
         expect(find.text('AI 88%'), findsOneWidget);
         expect(find.textContaining('Vùng chụp ≈ 0,12 m²'), findsOneWidget);
@@ -229,6 +251,7 @@ void main() {
       desktop(tester);
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
+      expect(find.text('Số lượng thực tế'), findsOneWidget);
 
       final save = find.text('Lưu bản nháp');
       await tester.ensureVisible(save);
